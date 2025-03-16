@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Финансово табло Revolut</title>
+    <link rel="stylesheet" href="styles.css">
+    <!-- Chart.js за визуализация на графики -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Supabase клиент -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Финансово табло Revolut</h1>
+            <div id="summary-section" class="summary-section">
+                <div class="summary-card">
+                    <h3>Общо транзакции</h3>
+                    <p id="total-transactions">0</p>
+                </div>
+                <div class="summary-card">
+                    <h3>Обща сума</h3>
+                    <p id="total-amount">0.00 лв.</p>
+                </div>
+                <div class="summary-card">
+                    <h3>Среден разход</h3>
+                    <p id="average-amount">0.00 лв.</p>
+                </div>
+            </div>
+        </header>
+
+        <section class="filters-section">
+            <h2>Филтри</h2>
+            <div class="filters-container">
+                <div class="filter-group">
+                    <label for="start-date">От дата:</label>
+                    <input type="date" id="start-date" placeholder="дд.мм.гггг">
+                </div>
+                <div class="filter-group">
+                    <label for="end-date">До дата:</label>
+                    <input type="date" id="end-date" placeholder="дд.мм.гггг">
+                </div>
+                <div class="filter-group">
+                    <label for="currency">Валута:</label>
+                    <select id="currency">
+                        <option value="all">Всички</option>
+                        <option value="BGN">BGN</option>
+                        <option value="EUR">EUR</option>
+                        <option value="USD">USD</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label for="transaction-type">Тип транзакция:</label>
+                    <select id="transaction-type">
+                        <option value="all">Всички</option>
+                        <option value="CARD_PAYMENT">Плащане с карта</option>
+                        <option value="TRANSFER">Трансфер</option>
+                        <option value="TOPUP">Захранване</option>
+                    </select>
+                </div>
+                <button id="apply-filters" class="btn">Приложи</button>
+            </div>
+        </section>
+
+        <section class="merchants-section">
+            <h2>Транзакции по търговци</h2>
+            <div class="data-container">
+                <div class="table-container">
+                    <table id="merchants-table">
+                        <thead>
+                            <tr>
+                                <th>Търговец</th>
+                                <th>Брой транзакции</th>
+                                <th>Обща сума</th>
+                                <th>Средна сума</th>
+                            </tr>
+                        </thead>
+                        <tbody id="merchants-table-body">
+                            <!-- Тук ще се добавят данните динамично -->
+                        </tbody>
+                    </table>
+                </div>
+                <div class="chart-container">
+                    <canvas id="merchants-chart"></canvas>
+                </div>
+            </div>
+        </section>
+
+        <section class="transactions-section">
+            <h2>Детайлни транзакции</h2>
+            <div class="transactions-container">
+                <table id="transactions-table">
+                    <thead>
+                        <tr>
+                            <th>Начална дата</th>
+                            <th>Крайна дата</th>
+                            <th>Описание</th>
+                            <th>Сума</th>
+                            <th>Валута</th>
+                            <th>Тип</th>
+                        </tr>
+                    </thead>
+                    <tbody id="transactions-table-body">
+                        <!-- Тук ще се добавят данните динамично -->
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </div>
+
+    <!-- Скриптове -->
+    <script src="../src/services/supabaseService.js"></script>
+    <script src="../src/utils/dataUtils.js"></script>
+    <script src="../src/components/summaryComponent.js"></script>
+    <script src="../src/components/merchantsTableComponent.js"></script>
+    <script src="../src/components/chartComponent.js"></script>
+    <script src="../src/components/transactionsTableComponent.js"></script>
+    <script src="../src/views/dashboardView.js"></script>
+    <script src="../src/app.js"></script>
+</body>
+</html>
