@@ -64,6 +64,9 @@ class DashboardView {
         
         // Синхронизиране на видимите и скритите полета за дати
         this.syncDateFields();
+        
+        // Слушатели за бутоните за бързи филтри
+        this.setupQuickFilterListeners();
     }
 
     /**
@@ -514,5 +517,146 @@ class DashboardView {
                 this.endDateInput.value = this.formatDateForDateInput(date);
             }
         }
+    }
+    
+    /**
+     * Настройване на слушатели за бързите филтри
+     */
+    setupQuickFilterListeners() {
+        // Бутони за бързи филтри
+        this.lastWeekButton = document.getElementById('last-week');
+        this.currentMonthButton = document.getElementById('current-month');
+        this.lastMonthButton = document.getElementById('last-month');
+        this.currentYearButton = document.getElementById('current-year');
+        
+        // Добавяме слушатели за бутоните
+        if (this.lastWeekButton) {
+            this.lastWeekButton.addEventListener('click', () => {
+                this.setDateRangeLastWeek();
+            });
+        }
+        
+        if (this.currentMonthButton) {
+            this.currentMonthButton.addEventListener('click', () => {
+                this.setDateRangeCurrentMonth();
+            });
+        }
+        
+        if (this.lastMonthButton) {
+            this.lastMonthButton.addEventListener('click', () => {
+                this.setDateRangeLastMonth();
+            });
+        }
+        
+        if (this.currentYearButton) {
+            this.currentYearButton.addEventListener('click', () => {
+                this.setDateRangeCurrentYear();
+            });
+        }
+    }
+    
+    /**
+     * Ресетване на активните класове на бутоните за бързи филтри
+     */
+    resetQuickFilterButtons() {
+        // Премахваме активния клас от всички бутони
+        const quickFilterButtons = document.querySelectorAll('.btn-quick-filter');
+        quickFilterButtons.forEach(button => {
+            button.classList.remove('active');
+        });
+    }
+    
+    /**
+     * Настройване на датите за последната седмица
+     */
+    setDateRangeLastWeek() {
+        this.resetQuickFilterButtons();
+        this.lastWeekButton.classList.add('active');
+        
+        // Изчисляваме датите за последната седмица
+        const today = new Date();
+        const oneWeekAgo = new Date();
+        oneWeekAgo.setDate(today.getDate() - 7);
+        
+        // Задаваме стойности на скритите date полета
+        this.startDateInput.value = this.formatDateForDateInput(oneWeekAgo);
+        this.endDateInput.value = this.formatDateForDateInput(today);
+        
+        // Задаваме стойности на видимите текстови полета
+        this.startDateDisplay.value = this.formatDateForInput(oneWeekAgo);
+        this.endDateDisplay.value = this.formatDateForInput(today);
+        
+        // Прилагаме филтрите
+        this.applyFilters();
+    }
+    
+    /**
+     * Настройване на датите за текущия месец
+     */
+    setDateRangeCurrentMonth() {
+        this.resetQuickFilterButtons();
+        this.currentMonthButton.classList.add('active');
+        
+        // Изчисляваме датите за текущия месец
+        const today = new Date();
+        const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+        
+        // Задаваме стойности на скритите date полета
+        this.startDateInput.value = this.formatDateForDateInput(firstDayOfMonth);
+        this.endDateInput.value = this.formatDateForDateInput(today);
+        
+        // Задаваме стойности на видимите текстови полета
+        this.startDateDisplay.value = this.formatDateForInput(firstDayOfMonth);
+        this.endDateDisplay.value = this.formatDateForInput(today);
+        
+        // Прилагаме филтрите
+        this.applyFilters();
+    }
+    
+    /**
+     * Настройване на датите за предишния месец
+     */
+    setDateRangeLastMonth() {
+        this.resetQuickFilterButtons();
+        this.lastMonthButton.classList.add('active');
+        
+        // Изчисляваме датите за предишния месец
+        const today = new Date();
+        const firstDayOfLastMonth = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+        const lastDayOfLastMonth = new Date(today.getFullYear(), today.getMonth(), 0);
+        
+        // Задаваме стойности на скритите date полета
+        this.startDateInput.value = this.formatDateForDateInput(firstDayOfLastMonth);
+        this.endDateInput.value = this.formatDateForDateInput(lastDayOfLastMonth);
+        
+        // Задаваме стойности на видимите текстови полета
+        this.startDateDisplay.value = this.formatDateForInput(firstDayOfLastMonth);
+        this.endDateDisplay.value = this.formatDateForInput(lastDayOfLastMonth);
+        
+        // Прилагаме филтрите
+        this.applyFilters();
+    }
+    
+    /**
+     * Настройване на датите за текущата година
+     */
+    setDateRangeCurrentYear() {
+        this.resetQuickFilterButtons();
+        this.currentYearButton.classList.add('active');
+        
+        // Изчисляваме датите за текущата година
+        const today = new Date();
+        const firstDayOfYear = new Date(today.getFullYear(), 0, 1);
+        
+        // Задаваме стойности на скритите date полета
+        this.startDateInput.value = this.formatDateForDateInput(firstDayOfYear);
+        this.endDateInput.value = this.formatDateForDateInput(today);
+        
+        // Задаваме стойности на видимите текстови полета
+        this.startDateDisplay.value = this.formatDateForInput(firstDayOfYear);
+        this.endDateDisplay.value = this.formatDateForInput(today);
+        
+        // Прилагаме филтрите
+        this.applyFilters();
     }
 }

@@ -65,6 +65,15 @@
                         <option value="TOPUP">Захранване</option>
                     </select>
                 </div>
+                <div class="filter-group quick-filters">
+                    <label>Бързи филтри:</label>
+                    <div class="quick-filter-buttons">
+                        <button id="last-week" class="btn-quick-filter">Последната седмица</button>
+                        <button id="current-month" class="btn-quick-filter">Текущ месец</button>
+                        <button id="last-month" class="btn-quick-filter">Предишен месец</button>
+                        <button id="current-year" class="btn-quick-filter">Текуща година</button>
+                    </div>
+                </div>
                 <button id="apply-filters" class="btn">Приложи</button>
             </div>
         </section>
@@ -116,13 +125,13 @@
     </div>
 
     <!-- Скриптове -->
-    <script src="../src/services/supabaseService.js"></script>
-    <script src="../src/utils/dataUtils.js"></script>
-    <script src="../src/components/summaryComponent.js"></script>
-    <script src="../src/components/merchantsTableComponent.js"></script>
-    <script src="../src/components/chartComponent.js"></script>
-    <script src="../src/components/transactionsTableComponent.js"></script>
-    <script src="../src/views/dashboardView.js"></script>
-    <script src="../src/app.js"></script>
+    <script src="/src/services/supabaseService.js"></script>
+    <script src="/src/utils/dataUtils.js"></script>
+    <script src="/src/components/summaryComponent.js"></script>
+    <script src="/src/components/merchantsTableComponent.js"></script>
+    <script src="/src/components/chartComponent.js"></script>
+    <script src="/src/components/transactionsTableComponent.js"></script>
+    <script src="/src/views/dashboardView.js"></script>
+    <script src="/src/app.js"></script>
 </body>
 </html>
