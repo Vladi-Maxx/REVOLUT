@@ -99,6 +99,29 @@ h2 {
 .filter-group select {
     width: 100%;
     padding: 10px;
+}
+
+/* Стилове за контейнера с двете полета за дата */
+.date-input-container {
+    position: relative;
+}
+
+/* Стилове за видимото текстово поле */
+.date-display {
+    width: 100%;
+    padding: 10px;
+    cursor: pointer;
+}
+
+/* Стилове за скритото поле за избор на дата */
+.date-picker {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    cursor: pointer;
     border: 1px solid #ddd;
     border-radius: 4px;
     font-size: 14px;

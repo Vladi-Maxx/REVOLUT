@@ -20,8 +20,13 @@ class DashboardView {
      * Инициализиране на филтрите
      */
     initFilters() {
+        // Инициализиране на елементите за избор на дати
         this.startDateInput = document.getElementById('start-date');
         this.endDateInput = document.getElementById('end-date');
+        this.startDateDisplay = document.getElementById('start-date-display');
+        this.endDateDisplay = document.getElementById('end-date-display');
+        
+        // Други елементи на филтъра
         this.currencySelect = document.getElementById('currency');
         this.transactionTypeSelect = document.getElementById('transaction-type');
         this.applyFiltersButton = document.getElementById('apply-filters');
@@ -31,12 +36,13 @@ class DashboardView {
         const oneMonthAgo = new Date();
         oneMonthAgo.setMonth(today.getMonth() - 1);
         
-        this.startDateInput.value = this.formatDateForInput(oneMonthAgo);
-        this.endDateInput.value = this.formatDateForInput(today);
+        // Задаваме стойности на скритите date полета
+        this.startDateInput.value = this.formatDateForDateInput(oneMonthAgo);
+        this.endDateInput.value = this.formatDateForDateInput(today);
         
-        // Добавяме текущите дати в data атрибут
-        this.startDateInput.dataset.date = this.formatDateForDateInput(oneMonthAgo);
-        this.endDateInput.dataset.date = this.formatDateForDateInput(today);
+        // Задаваме стойности на видимите текстови полета
+        this.startDateDisplay.value = this.formatDateForInput(oneMonthAgo);
+        this.endDateDisplay.value = this.formatDateForInput(today);
     }
 
     /**
@@ -55,6 +61,9 @@ class DashboardView {
         
         // Слушатели за датите
         this.setupDateInputListeners();
+        
+        // Синхронизиране на видимите и скритите полета за дати
+        this.syncDateFields();
     }
 
     /**
@@ -106,8 +115,9 @@ class DashboardView {
             
             // Вземаме стойностите на филтрите и конвертираме датите в правилен формат
             const filters = {
-                startDate: this.startDateInput.value ? this.parseBulgarianDate(this.startDateInput.value) : null,
-                endDate: this.endDateInput.value ? this.parseBulgarianDate(this.endDateInput.value) : null,
+                // Използваме стойностите от скритите date полета (стандартен формат yyyy-mm-dd)
+                startDate: this.startDateInput.value ? new Date(this.startDateInput.value) : null,
+                endDate: this.endDateInput.value ? new Date(this.endDateInput.value) : null,
                 currency: this.currencySelect.value,
                 type: this.transactionTypeSelect.value
             };
@@ -423,77 +433,86 @@ class DashboardView {
      * Настройване на слушатели за полетата за дати
      */
     setupDateInputListeners() {
-        // Слушател за фокусиране на полето за начална дата
-        this.startDateInput.addEventListener('focus', (event) => {
-            // Запазваме текущата дата в data атрибут
-            if (event.target.value) {
-                const date = this.parseBulgarianDate(event.target.value);
-                if (date) {
-                    event.target.dataset.date = this.formatDateForDateInput(date);
-                }
-            }
-        });
-        
-        // Слушател за фокусиране на полето за крайна дата
-        this.endDateInput.addEventListener('focus', (event) => {
-            // Запазваме текущата дата в data атрибут
-            if (event.target.value) {
-                const date = this.parseBulgarianDate(event.target.value);
-                if (date) {
-                    event.target.dataset.date = this.formatDateForDateInput(date);
-                }
-            }
-        });
-        
-        // Слушател за промяна на полето за начална дата
+        // Слушатели за скритите date полета
         this.startDateInput.addEventListener('change', (event) => {
-            if (event.target.type === 'date' && event.target.value) {
-                // Конвертираме от ISO формат към български
+            if (event.target.value) {
                 const date = new Date(event.target.value);
-                // Запазваме оригиналния формат в data атрибут
-                event.target.dataset.date = event.target.value;
-                // Веднага преобразуваме стойността в български формат
-                setTimeout(() => {
-                    event.target.value = this.formatDateForInput(date);
-                    // Връщаме полето към text тип, за да показва български формат
-                    event.target.type = 'text';
-                }, 0);
+                // Обновяваме видимото текстово поле с български формат
+                this.startDateDisplay.value = this.formatDateForInput(date);
             }
         });
         
-        // Слушател за промяна на полето за крайна дата
         this.endDateInput.addEventListener('change', (event) => {
-            if (event.target.type === 'date' && event.target.value) {
-                // Конвертираме от ISO формат към български
+            if (event.target.value) {
                 const date = new Date(event.target.value);
-                // Запазваме оригиналния формат в data атрибут
-                event.target.dataset.date = event.target.value;
-                // Веднага преобразуваме стойността в български формат
-                setTimeout(() => {
-                    event.target.value = this.formatDateForInput(date);
-                    // Връщаме полето към text тип, за да показва български формат
-                    event.target.type = 'text';
-                }, 0);
+                // Обновяваме видимото текстово поле с български формат
+                this.endDateDisplay.value = this.formatDateForInput(date);
             }
         });
         
-        // Слушатели за загуба на фокус
-        this.startDateInput.addEventListener('blur', (event) => {
-            if (event.target.type === 'date' && event.target.value) {
-                // Преформатираме стойността в български формат
-                const date = new Date(event.target.value);
-                event.target.value = this.formatDateForInput(date);
-                event.target.type = 'text'; // Връщаме към текстово поле
+        // Слушатели за видимите текстови полета
+        this.startDateDisplay.addEventListener('change', (event) => {
+            if (event.target.value) {
+                // Парсваме българския формат
+                const date = this.parseBulgarianDate(event.target.value);
+                if (date && !isNaN(date.getTime())) {
+                    // Обновяваме скритото date поле
+                    this.startDateInput.value = this.formatDateForDateInput(date);
+                }
             }
         });
         
-        this.endDateInput.addEventListener('blur', (event) => {
-            if (event.target.type === 'date' && event.target.value) {
-                // Преформатираме стойността в български формат
-                const date = new Date(event.target.value);
-                event.target.value = this.formatDateForInput(date);
-                event.target.type = 'text'; // Връщаме към текстово поле
+        this.endDateDisplay.addEventListener('change', (event) => {
+            if (event.target.value) {
+                // Парсваме българския формат
+                const date = this.parseBulgarianDate(event.target.value);
+                if (date && !isNaN(date.getTime())) {
+                    // Обновяваме скритото date поле
+                    this.endDateInput.value = this.formatDateForDateInput(date);
+                }
             }
         });
+        
+        // Клик върху текстовите полета отваря календарите
+        this.startDateDisplay.addEventListener('click', () => {
+            this.startDateInput.showPicker();
+        });
+        
+        this.endDateDisplay.addEventListener('click', () => {
+            this.endDateInput.showPicker();
+        });
+    }
+    
+    /**
+     * Синхронизиране на полетата за дати
+     */
+    syncDateFields() {
+        // При начално зареждане или при промяна на себе си, синхронизираме с другото поле
+        
+        // Синхронизираме началната дата
+        if (this.startDateInput.value) {
+            const date = new Date(this.startDateInput.value);
+            if (!isNaN(date.getTime())) {
+                this.startDateDisplay.value = this.formatDateForInput(date);
+            }
+        } else if (this.startDateDisplay.value) {
+            const date = this.parseBulgarianDate(this.startDateDisplay.value);
+            if (date && !isNaN(date.getTime())) {
+                this.startDateInput.value = this.formatDateForDateInput(date);
+            }
+        }
+        
+        // Синхронизираме крайната дата
+        if (this.endDateInput.value) {
+            const date = new Date(this.endDateInput.value);
+            if (!isNaN(date.getTime())) {
+                this.endDateDisplay.value = this.formatDateForInput(date);
+            }
+        } else if (this.endDateDisplay.value) {
+            const date = this.parseBulgarianDate(this.endDateDisplay.value);
+            if (date && !isNaN(date.getTime())) {
+                this.endDateInput.value = this.formatDateForDateInput(date);
+            }
+        }
     }
 }
