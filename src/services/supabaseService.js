@@ -155,6 +155,39 @@ class SupabaseService {
             throw error;
         }
     }
+
+    /**
+     * Изтриване на транзакция по ID
+     * @param {string} id - ID на транзакцията за изтриване
+     * @returns {Promise<Object>} Резултат от операцията
+     */
+    async deleteTransaction(id) {
+        try {
+            console.log(`Изтриване на транзакция с ID: ${id}`);
+            
+            // Проверка дали ID е предоставен
+            if (!id) {
+                throw new Error('Не е предоставен ID на транзакцията');
+            }
+            
+            // Изтриване на транзакцията
+            const { data, error } = await this.supabase
+                .from(this.tableName)
+                .delete()
+                .eq('id', id);
+                
+            if (error) {
+                console.error('Грешка при изтриване на транзакция:', error);
+                throw error;
+            }
+            
+            console.log('Транзакцията е изтрита успешно');
+            return { success: true, data };
+        } catch (error) {
+            console.error('Грешка при изтриване на транзакция:', error);
+            return { success: false, error: error.message };
+        }
+    }
 }
 
 // Създаване на инстанция на услугата

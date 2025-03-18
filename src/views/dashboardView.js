@@ -59,6 +59,11 @@ class DashboardView {
             this.onMerchantSelect(merchant);
         });
         
+        // Слушател за изтриване на транзакция
+        this.transactionsTableComponent.setDeleteTransactionCallback((transactionId, transaction) => {
+            this.deleteTransaction(transactionId, transaction);
+        });
+        
         // Слушатели за датите
         this.setupDateInputListeners();
         
@@ -520,7 +525,7 @@ class DashboardView {
     }
     
     /**
-     * Настройване на слушатели за бързите филтри
+     * Настройване на слушатели за бутоните за бързи филтри
      */
     setupQuickFilterListeners() {
         // Бутони за бързи филтри
@@ -658,5 +663,61 @@ class DashboardView {
         
         // Прилагаме филтрите
         this.applyFilters();
+    }
+    
+    /**
+     * Изтриване на транзакция
+     * @param {string} transactionId - ID на транзакцията за изтриване
+     * @param {Object} transaction - Обект с данни за транзакцията
+     */
+    async deleteTransaction(transactionId, transaction) {
+        try {
+            if (!transactionId) {
+                console.error('Не е предоставен ID на транзакцията за изтриване');
+                return;
+            }
+            
+            // Показваме съобщение за потвърждение
+            const confirmMessage = `Сигурни ли сте, че искате да изтриете тази транзакция?\n\nОписание: ${transaction.Description || '-'}\nСума: ${DataUtils.formatAmount(parseFloat(transaction.Amount) || 0, transaction.Currency || 'BGN')}\nДата: ${DataUtils.formatDate(transaction['Started Date'] || '')}\n\nТази операция не може да бъде отменена!`;
+            
+            if (!confirm(confirmMessage)) {
+                console.log('Изтриването е отказано от потребителя');
+                return;
+            }
+            
+            // Показваме индикатор за зареждане
+            this.showLoadingMessage();
+            
+            // Изпращаме заявка за изтриване към сървиса
+            const result = await supabaseService.deleteTransaction(transactionId);
+            
+            if (result.success) {
+                // Показваме съобщение за успех
+                alert('Транзакцията е изтрита успешно!');
+                
+                // Ако е необходимо, обновяваме данните в таблицата
+                // Имаме два варианта:
+                // 1. Да презаредим всички данни (по-бавно, но по-сигурно)
+                // await this.loadData();
+                
+                // 2. Или да премахнем транзакцията от локалните данни (по-бързо)
+                if (this.allTransactions) {
+                    // Премахваме транзакцията от масива с всички транзакции
+                    this.allTransactions = this.allTransactions.filter(t => t.id !== transactionId);
+                    
+                    // Прилагаме отново текущите филтри
+                    this.applyFilters();
+                } else {
+                    // Ако нямаме кеширани транзакции, презареждаме всички данни
+                    await this.loadData();
+                }
+            } else {
+                // Показваме съобщение за грешка
+                alert(`Грешка при изтриване на транзакцията: ${result.error}`);
+            }
+        } catch (error) {
+            console.error('Грешка при изтриване на транзакция:', error);
+            alert(`Възникна грешка при изтриване на транзакцията: ${error.message}`);
+        }
     }
 }
