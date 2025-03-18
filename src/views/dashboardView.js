@@ -9,6 +9,15 @@ class DashboardView {
         this.chartComponent = new ChartComponent();
         this.transactionsTableComponent = new TransactionsTableComponent();
         
+        // Инициализиране на елементите за филтриране
+        this.startDateInput = document.getElementById('start-date');
+        this.endDateInput = document.getElementById('end-date');
+        this.startDateDisplay = document.getElementById('start-date-display');
+        this.endDateDisplay = document.getElementById('end-date-display');
+        this.currencySelect = document.getElementById('currency');
+        this.transactionTypeSelect = document.getElementById('transaction-type');
+        this.applyFiltersButton = document.getElementById('apply-filters');
+        
         // Инициализиране на CSV импортера
         this.csvImporter = new CsvImporter({
             supabaseService: supabaseService,
@@ -17,8 +26,26 @@ class DashboardView {
             onImportSuccess: this.loadData.bind(this)
         });
         
+        // Инициализиране на Filter Manager-а
+        this.filterManager = new FilterManager({
+            elements: {
+                startDateInput: this.startDateInput,
+                endDateInput: this.endDateInput,
+                startDateDisplay: this.startDateDisplay,
+                endDateDisplay: this.endDateDisplay,
+                currencySelect: this.currencySelect,
+                transactionTypeSelect: this.transactionTypeSelect,
+                applyFiltersButton: this.applyFiltersButton
+            },
+            supabaseService: supabaseService,
+            dataUtils: DataUtils,
+            notificationCallback: this.showNotification.bind(this),
+            onFilterSuccess: null,
+            formatDateFn: this.formatDateForDateInput.bind(this)
+        });
+        
         // Инициализиране на филтрите
-        this.initFilters();
+        this.filterManager.initFilters();
         
         // Добавяне на слушатели за събития
         this.addEventListeners();
@@ -129,7 +156,7 @@ class DashboardView {
             this.allTransactions = transactions;
             
             // Попълваме селектите за валута и тип транзакция
-            this.populateFilters();
+            this.filterManager.populateFilters(this.allTransactions);
             
             // Прилагаме филтрите
             this.applyFilters();
@@ -148,35 +175,17 @@ class DashboardView {
             // Показваме съобщение за зареждане
             this.showLoadingMessage();
             
-            // Вземаме стойностите на филтрите и конвертираме датите в правилен формат
-            const filters = {
-                // Използваме стойностите от скритите date полета (стандартен формат yyyy-mm-dd)
-                startDate: this.startDateInput.value ? new Date(this.startDateInput.value) : null,
-                endDate: this.endDateInput.value ? new Date(this.endDateInput.value) : null,
-                currency: this.currencySelect.value,
-                type: this.transactionTypeSelect.value
-            };
+            // Използваме филтър мениджъра за прилагане на филтрите
+            const result = await this.filterManager.applyFilters(this.allTransactions);
             
-            // Ако имаме крайна дата, нагласяме я да включва целия ден
-            if (filters.endDate) {
-                filters.endDate.setHours(23, 59, 59, 999);
+            // Ако има грешка, показваме съобщение и прекратяваме
+            if (!result.success) {
+                this.showErrorMessage('Възникна грешка при филтриране на данните: ' + result.error);
+                return;
             }
             
-
-            
-            // Проверяваме наличието на транзакции
-
-            
-            // Извличаме филтрираните транзакции
-            let filteredTransactions;
-            
-            // Ако имаме всички транзакции в паметта, филтрираме локално
-            if (this.allTransactions) {
-                filteredTransactions = this.filterTransactionsLocally(this.allTransactions, filters);
-            } else {
-                // Иначе извличаме от базата данни
-                filteredTransactions = await supabaseService.getTransactionsWithFilters(filters);
-            }
+            // Извличаме филтрираните транзакции от резултата
+            const filteredTransactions = result.filteredTransactions;
             
             // Ако няма транзакции, показваме съобщение
             if (!filteredTransactions || filteredTransactions.length === 0) {
@@ -202,141 +211,11 @@ class DashboardView {
         }
     }
 
-    /**
-     * Филтриране на транзакции локално
-     * @param {Array} transactions - Масив с транзакции
-     * @param {Object} filters - Обект с филтри
-     * @returns {Array} Филтрирани транзакции
-     */
-    filterTransactionsLocally(transactions, filters) {
-        // Дебъг информация за филтрите
+    // filterTransactionsLocally() е преместен във FilterManager
 
-        
-        // Проверяваме формата на датите в транзакциите
-        if (transactions.length > 0) {
-            const firstTransaction = transactions[0];
+    // populateFilters() е преместен във FilterManager
 
-            
-            if (firstTransaction['Start Date']) {
-                const date = new Date(firstTransaction['Start Date']);
-
-            }
-        }
-        
-        return transactions.filter(transaction => {
-            // Дебъг информация за първата транзакция
-            if (transactions.indexOf(transaction) === 0) {
-
-            }
-            
-            // Филтриране по начална дата
-            if (filters.startDate && transaction['Started Date']) {
-                try {
-                    const transactionDate = new Date(transaction['Started Date']);
-                    const transactionTime = transactionDate.getTime();
-                    const filterTime = filters.startDate.getTime();
-                    
-                    // Дебъг информация за 10-тата транзакция
-
-                    
-                    if (!isNaN(transactionTime)) {
-                        if (transactionTime < filterTime) {
-                            return false;
-                        }
-                    } else {
-                        console.warn('Невалидна дата при филтриране по начална дата:', transaction['Started Date']);
-                    }
-                } catch (error) {
-                    console.error('Грешка при обработка на дата:', error);
-                }
-            }
-            
-            // Филтриране по крайна дата
-            if (filters.endDate && transaction['Started Date']) {
-                try {
-                    const transactionDate = new Date(transaction['Started Date']);
-                    const transactionTime = transactionDate.getTime();
-                    const filterTime = filters.endDate.getTime();
-                    
-                    // Дебъг информация за 20-тата транзакция
-
-                    
-                    if (!isNaN(transactionTime)) {
-                        if (transactionTime > filterTime) {
-                            return false;
-                        }
-                    } else {
-                        console.warn('Невалидна дата при филтриране по крайна дата:', transaction['Started Date']);
-                    }
-                } catch (error) {
-                    console.error('Грешка при обработка на дата:', error);
-                }
-            }
-            
-            // Филтриране по валута
-            if (filters.currency && filters.currency !== 'all') {
-                if (transaction.Currency !== filters.currency) {
-                    return false;
-                }
-            }
-            
-            // Филтриране по тип транзакция
-            if (filters.type && filters.type !== 'all') {
-                if (transaction.Type !== filters.type) {
-                    return false;
-                }
-            }
-            
-            return true;
-        });
-    }
-
-    /**
-     * Попълване на селектите за филтри
-     */
-    populateFilters() {
-        if (!this.allTransactions) return;
-        
-        // Извличаме уникални валути
-        const currencies = DataUtils.getUniqueCurrencies(this.allTransactions);
-        
-        // Попълваме селекта за валути
-        this.populateSelect(this.currencySelect, currencies, 'all', 'Всички');
-        
-        // Извличаме уникални типове транзакции
-        const types = DataUtils.getUniqueTransactionTypes(this.allTransactions);
-        
-        // Попълваме селекта за типове транзакции
-        this.populateSelect(this.transactionTypeSelect, types, 'all', 'Всички');
-    }
-
-    /**
-     * Попълване на селект с опции
-     * @param {HTMLElement} selectElement - Елемент на селекта
-     * @param {Array} options - Масив с опции
-     * @param {string} defaultValue - Стойност по подразбиране
-     * @param {string} defaultLabel - Етикет по подразбиране
-     */
-    populateSelect(selectElement, options, defaultValue, defaultLabel) {
-        // Запазваме опцията по подразбиране
-        const defaultOption = document.createElement('option');
-        defaultOption.value = defaultValue;
-        defaultOption.textContent = defaultLabel;
-        
-        // Изчистваме селекта
-        selectElement.innerHTML = '';
-        
-        // Добавяме опцията по подразбиране
-        selectElement.appendChild(defaultOption);
-        
-        // Добавяме останалите опции
-        options.forEach(option => {
-            const optionElement = document.createElement('option');
-            optionElement.value = option;
-            optionElement.textContent = option;
-            selectElement.appendChild(optionElement);
-        });
-    }
+    // populateSelect() е преместен във FilterManager
 
     /**
      * Обработка при избор на търговец
@@ -485,33 +364,7 @@ class DashboardView {
      * Синхронизиране на полетата за дати
      */
     syncDateFields() {
-        // При начално зареждане или при промяна на себе си, синхронизираме с другото поле
-        
-        // Синхронизираме началната дата
-        if (this.startDateInput.value) {
-            const date = new Date(this.startDateInput.value);
-            if (!isNaN(date.getTime())) {
-                this.startDateDisplay.value = this.formatDateForInput(date);
-            }
-        } else if (this.startDateDisplay.value) {
-            const date = this.parseBulgarianDate(this.startDateDisplay.value);
-            if (date && !isNaN(date.getTime())) {
-                this.startDateInput.value = this.formatDateForDateInput(date);
-            }
-        }
-        
-        // Синхронизираме крайната дата
-        if (this.endDateInput.value) {
-            const date = new Date(this.endDateInput.value);
-            if (!isNaN(date.getTime())) {
-                this.endDateDisplay.value = this.formatDateForInput(date);
-            }
-        } else if (this.endDateDisplay.value) {
-            const date = this.parseBulgarianDate(this.endDateDisplay.value);
-            if (date && !isNaN(date.getTime())) {
-                this.endDateInput.value = this.formatDateForDateInput(date);
-            }
-        }
+        this.filterManager.syncDateFields();
     }
     
     /**
@@ -568,18 +421,8 @@ class DashboardView {
         this.resetQuickFilterButtons();
         this.lastWeekButton.classList.add('active');
         
-        // Изчисляваме датите за последната седмица
-        const today = new Date();
-        const oneWeekAgo = new Date();
-        oneWeekAgo.setDate(today.getDate() - 7);
-        
-        // Задаваме стойности на скритите date полета
-        this.startDateInput.value = this.formatDateForDateInput(oneWeekAgo);
-        this.endDateInput.value = this.formatDateForDateInput(today);
-        
-        // Задаваме стойности на видимите текстови полета
-        this.startDateDisplay.value = this.formatDateForInput(oneWeekAgo);
-        this.endDateDisplay.value = this.formatDateForInput(today);
+        // Използваме FilterManager за задаване на датов диапазон
+        this.filterManager.setDateRangeLastWeek();
         
         // Прилагаме филтрите
         this.applyFilters();
@@ -592,17 +435,8 @@ class DashboardView {
         this.resetQuickFilterButtons();
         this.currentMonthButton.classList.add('active');
         
-        // Изчисляваме датите за текущия месец
-        const today = new Date();
-        const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
-        
-        // Задаваме стойности на скритите date полета
-        this.startDateInput.value = this.formatDateForDateInput(firstDayOfMonth);
-        this.endDateInput.value = this.formatDateForDateInput(today);
-        
-        // Задаваме стойности на видимите текстови полета
-        this.startDateDisplay.value = this.formatDateForInput(firstDayOfMonth);
-        this.endDateDisplay.value = this.formatDateForInput(today);
+        // Използваме FilterManager за задаване на датов диапазон
+        this.filterManager.setDateRangeCurrentMonth();
         
         // Прилагаме филтрите
         this.applyFilters();
@@ -615,18 +449,8 @@ class DashboardView {
         this.resetQuickFilterButtons();
         this.lastMonthButton.classList.add('active');
         
-        // Изчисляваме датите за предишния месец
-        const today = new Date();
-        const firstDayOfLastMonth = new Date(today.getFullYear(), today.getMonth() - 1, 1);
-        const lastDayOfLastMonth = new Date(today.getFullYear(), today.getMonth(), 0);
-        
-        // Задаваме стойности на скритите date полета
-        this.startDateInput.value = this.formatDateForDateInput(firstDayOfLastMonth);
-        this.endDateInput.value = this.formatDateForDateInput(lastDayOfLastMonth);
-        
-        // Задаваме стойности на видимите текстови полета
-        this.startDateDisplay.value = this.formatDateForInput(firstDayOfLastMonth);
-        this.endDateDisplay.value = this.formatDateForInput(lastDayOfLastMonth);
+        // Използваме FilterManager за задаване на датов диапазон
+        this.filterManager.setDateRangeLastMonth();
         
         // Прилагаме филтрите
         this.applyFilters();
@@ -639,17 +463,8 @@ class DashboardView {
         this.resetQuickFilterButtons();
         this.currentYearButton.classList.add('active');
         
-        // Изчисляваме датите за текущата година
-        const today = new Date();
-        const firstDayOfYear = new Date(today.getFullYear(), 0, 1);
-        
-        // Задаваме стойности на скритите date полета
-        this.startDateInput.value = this.formatDateForDateInput(firstDayOfYear);
-        this.endDateInput.value = this.formatDateForDateInput(today);
-        
-        // Задаваме стойности на видимите текстови полета
-        this.startDateDisplay.value = this.formatDateForInput(firstDayOfYear);
-        this.endDateDisplay.value = this.formatDateForInput(today);
+        // Използваме FilterManager за задаване на датов диапазон
+        this.filterManager.setDateRangeCurrentYear();
         
         // Прилагаме филтрите
         this.applyFilters();
