@@ -18,14 +18,14 @@ class SupabaseService {
      */
     async getAllTransactions() {
         try {
-            console.log('Извличане на всички транзакции с автоматична пагинация');
+
             
             // Първо извличаме броя на всички записи
             const { count } = await this.supabase
                 .from(this.tableName)
                 .select('*', { count: 'exact', head: true });
             
-            console.log(`Общ брой транзакции: ${count}`);
+
             
             // Ако няма записи, връщаме празен масив
             if (!count) {
@@ -36,7 +36,7 @@ class SupabaseService {
             const pageSize = 1000;
             const pages = Math.ceil(count / pageSize);
             
-            console.log(`Извличане на ${pages} страници с по ${pageSize} записа на страница`);
+
             
             // Масив за съхранение на всички транзакции
             let allTransactions = [];
@@ -44,7 +44,7 @@ class SupabaseService {
             // Извличаме всяка страница последователно
             for (let page = 0; page < pages; page++) {
                 const offset = page * pageSize;
-                console.log(`Извличане на страница ${page + 1}/${pages}, офсет: ${offset}`);
+
                 
                 const { data, error } = await this.supabase
                     .from(this.tableName)
@@ -56,7 +56,7 @@ class SupabaseService {
                     throw error;
                 }
                 
-                console.log(`Извлечени ${data.length} записа от страница ${page + 1}`);
+
                 
                 // Добавяме записите от текущата страница към общия масив
                 if (data && data.length > 0) {
@@ -64,13 +64,10 @@ class SupabaseService {
                 }
             }
             
-            console.log(`Общо извлечени ${allTransactions.length} транзакции от общо ${count}`);
+
             
             // Дебъг информация за първата транзакция
-            if (allTransactions.length > 0) {
-                console.log('Първа транзакция имена на полета:', Object.keys(allTransactions[0]));
-                console.log('Първа транзакция данни:', allTransactions[0]);
-            }
+
             
             return allTransactions;
         } catch (error) {
@@ -89,7 +86,7 @@ class SupabaseService {
      */
     async getTransactionsByPeriod(startDate, endDate, pageSize = 1000, page = 0) {
         try {
-            console.log(`Извличане на транзакции по период: ${startDate} - ${endDate}`);
+
             
             // Изчисляваме офсета на базата на номера на страницата
             const offset = page * pageSize;
@@ -108,7 +105,7 @@ class SupabaseService {
                 throw error;
             }
 
-            console.log(`Извлечени ${data?.length || 0} транзакции от общо ${count} за периода`);
+
             return data || [];
         } catch (error) {
             console.error('Грешка при извличане на транзакции по период:', error);
@@ -167,7 +164,7 @@ class SupabaseService {
                 return { success: false, error: 'Няма транзакции за импортиране', count: 0 };
             }
             
-            console.log(`Стартиране на импорт на ${transactions.length} транзакции`);
+
             
             // Използваме upsert за да добавим всички транзакции наведнъж
             const { data, error } = await this.supabase
@@ -180,7 +177,7 @@ class SupabaseService {
                 return { success: false, error: error.message, count: 0 };
             }
             
-            console.log(`Успешно импортирани ${data ? data.length : transactions.length} транзакции`);
+
             return { success: true, count: data ? data.length : transactions.length };
             
         } catch (error) {
@@ -196,7 +193,7 @@ class SupabaseService {
      */
     async deleteTransaction(id) {
         try {
-            console.log(`Изтриване на транзакция с ID: ${id}`);
+
             
             // Проверка дали ID е предоставен
             if (!id) {
@@ -214,7 +211,7 @@ class SupabaseService {
                 throw error;
             }
             
-            console.log('Транзакцията е изтрита успешно');
+
             return { success: true, data };
         } catch (error) {
             console.error('Грешка при изтриване на транзакция:', error);

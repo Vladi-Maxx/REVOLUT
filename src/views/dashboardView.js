@@ -114,10 +114,9 @@ class DashboardView {
             const transactions = await supabaseService.getAllTransactions();
             
             // Дебъг информация
-            console.log('Всички транзакции:', transactions);
+            // Зареждане на транзакции
             if (transactions && transactions.length > 0) {
-                console.log('Първа транзакция:', transactions[0]);
-                console.log('Имена на полетата:', Object.keys(transactions[0]));
+
             }
             
             // Ако няма транзакции, показваме съобщение
@@ -163,17 +162,10 @@ class DashboardView {
                 filters.endDate.setHours(23, 59, 59, 999);
             }
             
-            console.log('Приложени филтри:', {
-                startDate: filters.startDate ? filters.startDate.toISOString() : null,
-                startDateTimestamp: filters.startDate ? filters.startDate.getTime() : null,
-                endDate: filters.endDate ? filters.endDate.toISOString() : null,
-                endDateTimestamp: filters.endDate ? filters.endDate.getTime() : null,
-                currency: filters.currency,
-                type: filters.type
-            });
+
             
             // Проверяваме наличието на транзакции
-            console.log('Общ брой транзакции в паметта:', this.allTransactions ? this.allTransactions.length : 0);
+
             
             // Извличаме филтрираните транзакции
             let filteredTransactions;
@@ -218,33 +210,23 @@ class DashboardView {
      */
     filterTransactionsLocally(transactions, filters) {
         // Дебъг информация за филтрите
-        console.log('Филтриране на транзакции с филтри:', {
-            startDate: filters.startDate ? filters.startDate.toISOString() : null,
-            startDateTimestamp: filters.startDate ? filters.startDate.getTime() : null,
-            endDate: filters.endDate ? filters.endDate.toISOString() : null,
-            endDateTimestamp: filters.endDate ? filters.endDate.getTime() : null,
-            currency: filters.currency,
-            type: filters.type
-        });
+
         
         // Проверяваме формата на датите в транзакциите
         if (transactions.length > 0) {
             const firstTransaction = transactions[0];
-            console.log('Първа транзакция - Start Date:', firstTransaction['Start Date']);
-            console.log('Първа транзакция - Completed Date:', firstTransaction['Completed Date']);
+
             
             if (firstTransaction['Start Date']) {
                 const date = new Date(firstTransaction['Start Date']);
-                console.log('Парсната дата:', date.toISOString());
-                console.log('Таймстамп на датата:', date.getTime());
+
             }
         }
         
         return transactions.filter(transaction => {
             // Дебъг информация за първата транзакция
             if (transactions.indexOf(transaction) === 0) {
-                console.log('Проверяваме полетата на транзакция:', Object.keys(transaction));
-                console.log('Стойности на първата транзакция:', transaction);
+
             }
             
             // Филтриране по начална дата
@@ -255,17 +237,7 @@ class DashboardView {
                     const filterTime = filters.startDate.getTime();
                     
                     // Дебъг информация за 10-тата транзакция
-                    if (transactions.indexOf(transaction) === 10) {
-                        console.log('Сравнение на дати (декември):', {
-                            'Transaction Started Date': transaction['Started Date'],
-                            'Transaction Date Object': transactionDate.toISOString(),
-                            'Transaction Timestamp': transactionTime,
-                            'Filter Start Date': filters.startDate.toISOString(),
-                            'Filter Timestamp': filterTime,
-                            'Is Before Filter': transactionDate < filters.startDate,
-                            'Timestamps Comparison': transactionTime < filterTime
-                        });
-                    }
+
                     
                     if (!isNaN(transactionTime)) {
                         if (transactionTime < filterTime) {
@@ -287,17 +259,7 @@ class DashboardView {
                     const filterTime = filters.endDate.getTime();
                     
                     // Дебъг информация за 20-тата транзакция
-                    if (transactions.indexOf(transaction) === 20) {
-                        console.log('Сравнение на крайни дати:', {
-                            'Transaction Started Date': transaction['Started Date'],
-                            'Transaction Date Object': transactionDate.toISOString(),
-                            'Transaction Timestamp': transactionTime,
-                            'Filter End Date': filters.endDate.toISOString(),
-                            'Filter Timestamp': filterTime,
-                            'Is After Filter': transactionDate > filters.endDate,
-                            'Timestamps Comparison': transactionTime > filterTime
-                        });
-                    }
+
                     
                     if (!isNaN(transactionTime)) {
                         if (transactionTime > filterTime) {
@@ -392,7 +354,7 @@ class DashboardView {
      */
     showLoadingMessage() {
         // Тук може да добавите логика за показване на индикатор за зареждане
-        console.log('Зареждане на данни...');
+
     }
 
     /**
@@ -400,7 +362,7 @@ class DashboardView {
      */
     showNoDataMessage() {
         // Тук може да добавите логика за показване на съобщение за липса на данни
-        console.log('Няма данни за показване.');
+        // Няма данни за показване
     }
 
     /**
@@ -709,7 +671,7 @@ class DashboardView {
             const confirmMessage = `Сигурни ли сте, че искате да изтриете тази транзакция?\n\nОписание: ${transaction.Description || '-'}\nСума: ${DataUtils.formatAmount(parseFloat(transaction.Amount) || 0, transaction.Currency || 'BGN')}\nДата: ${DataUtils.formatDate(transaction['Started Date'] || '')}\n\nТази операция не може да бъде отменена!`;
             
             if (!confirm(confirmMessage)) {
-                console.log('Изтриването е отказано от потребителя');
+                // Потребителят е отказал изтриването
                 return;
             }
             

@@ -35,12 +35,9 @@ class CsvImporter {
                 throw new Error('Няма валидни транзакции в CSV файла');
             }
             
-            console.log(`Прочетени ${transactions.length} транзакции от CSV файла`);
+
             
-            // Дебъг за CSV файла
-            console.log('Структура на CSV транзакции:');
-            console.log('Полета:', Object.keys(transactions[0]));
-            console.log('Първа транзакция:', transactions[0]);
+            // Проверка на структурата на CSV транзакции
             
             // Вземаме съществуващите транзакции за проверка за дубликати
             let dbTransactions = existingTransactions;
@@ -50,11 +47,7 @@ class CsvImporter {
                 dbTransactions = await this.supabaseService.getAllTransactions();
             }
             
-            console.log('Структура на съществуващите транзакции:');
-            if (dbTransactions.length > 0) {
-                console.log('Полета:', Object.keys(dbTransactions[0]));
-                console.log('Първа транзакция:', dbTransactions[0]);
-            }
+            // Проверка на съществуващите транзакции
             
             // Маркираме CSV транзакциите, за да ги различаваме по-лесно
             transactions.forEach(tx => tx.__source = 'csv');
@@ -62,20 +55,20 @@ class CsvImporter {
             // Филтрираме новите транзакции (премахваме дубликати)
             const { newTransactions, duplicates } = this.findUniqueTransactions(transactions, dbTransactions);
             
-            console.log(`Резултати: ${newTransactions.length} нови, ${duplicates.length} дубликати`);
+
             
             if (newTransactions.length === 0) {
                 this.showNotification(`Няма нови транзакции за импортиране. Намерени са ${duplicates.length} дубликати.`, 'info');
                 return;
             }
             
-            console.log(`Намерени ${newTransactions.length} нови транзакции за импортиране`);
+
             
             // Потвърждение от потребителя
             const confirmImport = confirm(`Намерени са ${newTransactions.length} нови транзакции за импортиране и ${duplicates.length} дубликати. Желаете ли да продължите?`);
             
             if (!confirmImport) {
-                console.log('Импортирането е отказано от потребителя');
+
                 this.showNotification('Импортирането е отменено', 'info');
                 return;
             }
@@ -126,7 +119,7 @@ class CsvImporter {
         const duplicates = [];
 
         // Дебъг информация за транзакциите в базата
-        console.log(`Проверка за дубликати между ${csvTransactions.length} CSV и ${dbTransactions.length} DB транзакции`);
+
         
         // Важно: Използваме само датата, сумата и типа за сравнение
         // Създаваме идентификатори за всички съществуващи транзакции
@@ -142,7 +135,7 @@ class CsvImporter {
             }
         }
         
-        console.log(`Създаден сет с ${existingSet.size} уникални съществуващи транзакции`);
+
         
         // Проверяваме всяка CSV транзакция дали вече съществува
         for (const tx of csvTransactions) {
@@ -166,13 +159,7 @@ class CsvImporter {
         }
         
         // Извеждаме примерни резултати
-        if (newTransactions.length > 0) {
-            console.log('Пример за нова транзакция:', newTransactions[0]);
-        }
-        
-        if (duplicates.length > 0) {
-            console.log('Пример за дубликат:', duplicates[0]);
-        }
+
         
         return { newTransactions, duplicates };
     }
