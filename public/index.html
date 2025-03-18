@@ -77,6 +77,8 @@
                     </div>
                 </div>
                 <button id="apply-filters" class="btn">Приложи</button>
+                <button id="import-csv" class="btn">Импорт CSV</button>
+                <input type="file" id="csv-file-input" accept=".csv" style="display: none;">
             </div>
         </section>
 
@@ -128,13 +130,14 @@
     </div>
 
     <!-- Скриптове -->
-    <script src="/src/services/supabaseService.js"></script>
-    <script src="/src/utils/dataUtils.js"></script>
-    <script src="/src/components/summaryComponent.js"></script>
-    <script src="/src/components/merchantsTableComponent.js"></script>
-    <script src="/src/components/chartComponent.js"></script>
-    <script src="/src/components/transactionsTableComponent.js"></script>
-    <script src="/src/views/dashboardView.js"></script>
-    <script src="/src/app.js"></script>
+    <script src="../src/services/supabaseService.js"></script>
+    <script src="../src/utils/dataUtils.js"></script>
+    <script src="../src/utils/csvUtils.js"></script>
+    <script src="../src/components/summaryComponent.js"></script>
+    <script src="../src/components/merchantsTableComponent.js"></script>
+    <script src="../src/components/chartComponent.js"></script>
+    <script src="../src/components/transactionsTableComponent.js"></script>
+    <script src="../src/views/dashboardView.js"></script>
+    <script src="../src/app.js"></script>
 </body>
 </html>

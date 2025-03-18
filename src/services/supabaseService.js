@@ -157,6 +157,39 @@ class SupabaseService {
     }
 
     /**
+     * Импортиране на транзакции от CSV
+     * @param {Array} transactions - Масив с транзакции за импортиране
+     * @returns {Promise<Object>} Резултат от операцията
+     */
+    async importTransactions(transactions) {
+        try {
+            if (!transactions || transactions.length === 0) {
+                return { success: false, error: 'Няма транзакции за импортиране', count: 0 };
+            }
+            
+            console.log(`Стартиране на импорт на ${transactions.length} транзакции`);
+            
+            // Използваме upsert за да добавим всички транзакции наведнъж
+            const { data, error } = await this.supabase
+                .from(this.tableName)
+                .insert(transactions)
+                .select();
+                
+            if (error) {
+                console.error('Грешка при импортиране на транзакции:', error);
+                return { success: false, error: error.message, count: 0 };
+            }
+            
+            console.log(`Успешно импортирани ${data ? data.length : transactions.length} транзакции`);
+            return { success: true, count: data ? data.length : transactions.length };
+            
+        } catch (error) {
+            console.error('Грешка при импортиране на транзакции:', error);
+            return { success: false, error: error.message, count: 0 };
+        }
+    }
+
+    /**
      * Изтриване на транзакция по ID
      * @param {string} id - ID на транзакцията за изтриване
      * @returns {Promise<Object>} Резултат от операцията
