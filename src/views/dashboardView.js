@@ -26,6 +26,12 @@ class DashboardView {
             onImportSuccess: this.loadData.bind(this)
         });
         
+        // Инициализиране на елементите за бързи филтри
+        this.lastWeekButton = document.getElementById('last-week');
+        this.currentMonthButton = document.getElementById('current-month');
+        this.lastMonthButton = document.getElementById('last-month');
+        this.currentYearButton = document.getElementById('current-year');
+        
         // Инициализиране на Filter Manager-а
         this.filterManager = new FilterManager({
             elements: {
@@ -42,6 +48,18 @@ class DashboardView {
             notificationCallback: this.showNotification.bind(this),
             onFilterSuccess: null,
             formatDateFn: this.formatDateForDateInput.bind(this)
+        });
+        
+        // Инициализиране на QuickFilterManager-а
+        this.quickFilterManager = new QuickFilterManager({
+            elements: {
+                lastWeekButton: this.lastWeekButton,
+                currentMonthButton: this.currentMonthButton,
+                lastMonthButton: this.lastMonthButton,
+                currentYearButton: this.currentYearButton
+            },
+            filterManager: this.filterManager,
+            applyFiltersCallback: this.applyFilters.bind(this)
         });
         
         // Инициализиране на филтрите
@@ -104,9 +122,6 @@ class DashboardView {
         
         // Синхронизиране на видимите и скритите полета за дати
         this.syncDateFields();
-        
-        // Слушатели за бутоните за бързи филтри
-        this.setupQuickFilterListeners();
         
         // Инициализиране на елементите за импорт на CSV
         this.importCsvButton = document.getElementById('import-csv');
@@ -367,108 +382,7 @@ class DashboardView {
         this.filterManager.syncDateFields();
     }
     
-    /**
-     * Настройване на слушатели за бутоните за бързи филтри
-     */
-    setupQuickFilterListeners() {
-        // Бутони за бързи филтри
-        this.lastWeekButton = document.getElementById('last-week');
-        this.currentMonthButton = document.getElementById('current-month');
-        this.lastMonthButton = document.getElementById('last-month');
-        this.currentYearButton = document.getElementById('current-year');
-        
-        // Добавяме слушатели за бутоните
-        if (this.lastWeekButton) {
-            this.lastWeekButton.addEventListener('click', () => {
-                this.setDateRangeLastWeek();
-            });
-        }
-        
-        if (this.currentMonthButton) {
-            this.currentMonthButton.addEventListener('click', () => {
-                this.setDateRangeCurrentMonth();
-            });
-        }
-        
-        if (this.lastMonthButton) {
-            this.lastMonthButton.addEventListener('click', () => {
-                this.setDateRangeLastMonth();
-            });
-        }
-        
-        if (this.currentYearButton) {
-            this.currentYearButton.addEventListener('click', () => {
-                this.setDateRangeCurrentYear();
-            });
-        }
-    }
-    
-    /**
-     * Ресетване на активните класове на бутоните за бързи филтри
-     */
-    resetQuickFilterButtons() {
-        // Премахваме активния клас от всички бутони
-        const quickFilterButtons = document.querySelectorAll('.btn-quick-filter');
-        quickFilterButtons.forEach(button => {
-            button.classList.remove('active');
-        });
-    }
-    
-    /**
-     * Настройване на датите за последната седмица
-     */
-    setDateRangeLastWeek() {
-        this.resetQuickFilterButtons();
-        this.lastWeekButton.classList.add('active');
-        
-        // Използваме FilterManager за задаване на датов диапазон
-        this.filterManager.setDateRangeLastWeek();
-        
-        // Прилагаме филтрите
-        this.applyFilters();
-    }
-    
-    /**
-     * Настройване на датите за текущия месец
-     */
-    setDateRangeCurrentMonth() {
-        this.resetQuickFilterButtons();
-        this.currentMonthButton.classList.add('active');
-        
-        // Използваме FilterManager за задаване на датов диапазон
-        this.filterManager.setDateRangeCurrentMonth();
-        
-        // Прилагаме филтрите
-        this.applyFilters();
-    }
-    
-    /**
-     * Настройване на датите за предишния месец
-     */
-    setDateRangeLastMonth() {
-        this.resetQuickFilterButtons();
-        this.lastMonthButton.classList.add('active');
-        
-        // Използваме FilterManager за задаване на датов диапазон
-        this.filterManager.setDateRangeLastMonth();
-        
-        // Прилагаме филтрите
-        this.applyFilters();
-    }
-    
-    /**
-     * Настройване на датите за текущата година
-     */
-    setDateRangeCurrentYear() {
-        this.resetQuickFilterButtons();
-        this.currentYearButton.classList.add('active');
-        
-        // Използваме FilterManager за задаване на датов диапазон
-        this.filterManager.setDateRangeCurrentYear();
-        
-        // Прилагаме филтрите
-        this.applyFilters();
-    }
+
     
     /**
      * Изтриване на транзакция
