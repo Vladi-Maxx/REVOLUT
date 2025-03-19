@@ -46,7 +46,34 @@ class DashboardView {
             supabaseService: supabaseService,
             dataUtils: DataUtils,
             notificationCallback: this.showNotification.bind(this),
-            onFilterSuccess: null
+            onFilterSuccess: (result) => {
+                // Обновяваме графиката и summary панелите, без да извикваме отново applyFilters
+                if (result && result.success) {
+                    // 1. Обновяваме summary панелите
+                    if (result.stats) {
+                        this.summaryComponent.updateSummary(result.stats);
+                    }
+                    
+                    // 2. Обновяваме таблицата с търговци
+                    if (result.filteredTransactions && result.filteredTransactions.length > 0) {
+                        const merchantsData = DataUtils.groupTransactionsByMerchant(result.filteredTransactions);
+                        this.merchantsTableComponent.updateTable(merchantsData);
+                    }
+                    
+                    // 3. Подготовка на данни за графиката
+                    let chartData = [];
+                    
+                    // Използваме подготвените данни от FilterManager
+                    if (result.merchantsData && result.merchantsData.length > 0) {
+                        chartData = result.merchantsData;
+                    }
+                    
+                    // Обновяваме графиката
+                    if (chartData && chartData.length > 0) {
+                        this.chartComponent.updateChart(chartData);
+                    }
+                }
+            }
         });
         
         // Инициализиране на QuickFilterManager-а

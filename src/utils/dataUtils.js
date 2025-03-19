@@ -130,6 +130,7 @@ class DataUtils {
      * @returns {Array} Масив с уникални типове
      */
     static getUniqueTransactionTypes(transactions) {
+        
         const types = new Set();
         
         transactions.forEach(transaction => {
@@ -137,7 +138,10 @@ class DataUtils {
                 types.add(transaction.Type);
             }
         });
+        
+        const uniqueTypes = Array.from(types);
+        console.log('DataUtils: Намерени уникални типове:', uniqueTypes);
 
-        return Array.from(types);
+        return uniqueTypes;
     }
 }

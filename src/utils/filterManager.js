@@ -59,7 +59,21 @@ class FilterManager {
         this.setupDateInputListeners();
         
         // Добавяме слушател за бутона за прилагане на филтри
-        this.elements.applyFiltersButton.addEventListener('click', () => this.applyFilters());
+        this.elements.applyFiltersButton.addEventListener('click', () => {
+            this.applyFilters();
+        });
+        
+        // Добавяме слушател за промяна на валутата
+        this.elements.currencySelect.addEventListener('change', () => {
+            // Автоматично прилагаме филтрите при промяна на валутата
+            this.applyFilters();
+        });
+        
+        // Добавяме слушател за промяна на типа транзакция
+        this.elements.transactionTypeSelect.addEventListener('change', () => {
+            // Автоматично прилагаме филтрите при промяна на типа транзакция
+            this.applyFilters();
+        });
     }
     
     /**
@@ -77,11 +91,12 @@ class FilterManager {
                 this.allTransactions = allTransactions;
             }
             
+            // Запазваме текущия избран тип транзакция
+            const selectedType = this.elements.transactionTypeSelect.value;
+            
             // Вземаме стойностите на филтрите и конвертираме датите в правилен формат
             const startDateValue = this.elements.startDateInput.value;
             const endDateValue = this.elements.endDateInput.value;
-            
-            // Парсваме датите
             
             // Парсваме датите и ги установяваме на началото на деня
             let startDate = null;
@@ -97,14 +112,12 @@ class FilterManager {
                 endDate.setHours(23, 59, 59, 999);
             }
             
-            // Датите са конвертирани успешно
-            
             // Създаваме обект с филтри
             const filters = {
                 startDate,
                 endDate,
                 currency: this.elements.currencySelect.value,
-                type: this.elements.transactionTypeSelect.value
+                type: selectedType // Използваме запазената стойност
             };
             
             // Извличаме филтрираните транзакции
@@ -120,6 +133,11 @@ class FilterManager {
             
             // Актуализираме филтрите с данни от транзакциите
             this.populateFilters();
+            
+            // Възстановяваме избрания тип транзакция след попълването на филтрите
+            if (selectedType && selectedType !== 'all') {
+                this.elements.transactionTypeSelect.value = selectedType;
+            }
             
             // Групираме транзакциите по търговци за останалите компоненти
             const merchantsData = this.groupTransactionsByMerchant(filteredTransactions);
@@ -223,8 +241,8 @@ class FilterManager {
             
             // Всички UI компоненти са обновени
             
-            // Връщаме резултатите с подготвените данни за графиката
-            return {
+            // Създаваме обект с резултатите
+            const result = {
                 success: true,
                 filteredTransactions,
                 filters,
@@ -243,6 +261,14 @@ class FilterManager {
                 }
             };
             
+            // Извикваме callback функцията onFilterSuccess, ако е зададена
+            if (this.onFilterSuccess && typeof this.onFilterSuccess === 'function') {
+                this.onFilterSuccess(result);
+            }
+            
+            // Връщаме резултатите
+            return result;
+            
         } catch (error) {
             console.error('Грешка при прилагане на филтри:', error);
             this.showNotification('Възникна грешка при филтриране на данните.', 'error');
@@ -260,16 +286,6 @@ class FilterManager {
      * @returns {Array} Филтрирани транзакции
      */
     filterTransactionsLocally(transactions, filters) {
-        
-        // Проверяваме формата на датите в транзакциите
-        if (transactions.length > 0) {
-            const firstTransaction = transactions[0];
-            console.log('FilterManager: Първа транзакция', firstTransaction);
-            
-            // Проверка на имената на полетата за дати
-            const dateFields = Object.keys(firstTransaction).filter(key => 
-                key.toLowerCase().includes('date') || key.toLowerCase().includes('дата'));
-        }
         
         let filtered = transactions.filter(transaction => {
             let keepTransaction = true;
@@ -425,21 +441,33 @@ class FilterManager {
             
             // Филтриране по тип транзакция
             if (filters.type && filters.type !== 'all' && keepTransaction) {
-                // Проверка за различни варианти на поле за тип
-                const possibleTypeFields = ['Type', 'type', 'TYPE', 'TransactionType', 'transactionType'];
-                let hasTypeMatch = false;
+                // Проверка за съвпадение на типа
+                const normalizedTransactionType = transaction.Type ? String(transaction.Type).trim().toUpperCase() : '';
+                const normalizedFilterType = String(filters.type).trim().toUpperCase();
                 
+                // Проверяваме за съвпадение или частично съвпадение
+                if (normalizedTransactionType === normalizedFilterType || 
+                    normalizedTransactionType.includes(normalizedFilterType) || 
+                    normalizedFilterType.includes(normalizedTransactionType)) {
+                    return true;
+                }
+                
+                // Ако няма директно съвпадение, проверяваме за други полета
+                const possibleTypeFields = ['type', 'TYPE', 'TransactionType', 'transactionType', 'Transaction Type', 'transaction_type'];
+                
+                // Проверяваме в алтернативните полета
                 for (const field of possibleTypeFields) {
-                    if (transaction[field] && 
-                        transaction[field].toUpperCase() === filters.type.toUpperCase()) {
-                        hasTypeMatch = true;
-                        break;
+                    if (transaction[field]) {
+                        const transactionType = String(transaction[field]).trim().toUpperCase();
+                        
+                        if (transactionType === normalizedFilterType) {
+                            return true;
+                        }
                     }
                 }
                 
-                if (!hasTypeMatch && filters.type !== 'all') {
-                    keepTransaction = false;
-                }
+                // Ако стигнем дотук, няма съвпадение и транзакцията трябва да бъде филтрирана
+                keepTransaction = false;
             }
             
             return keepTransaction;
@@ -488,11 +516,16 @@ class FilterManager {
         // Добавяме опцията по подразбиране
         selectElement.appendChild(defaultOption);
         
+        // Филтрираме нулеви и празни стойности
+        const validOptions = options.filter(option => option !== null && option !== undefined && option !== '');
+        
         // Добавяме останалите опции
-        options.forEach(option => {
+        validOptions.forEach(option => {
             const optionElement = document.createElement('option');
-            optionElement.value = option;
-            optionElement.textContent = option;
+            // Преобразуваме в стринг и премахваме излишните интервали
+            const optionValue = String(option).trim();
+            optionElement.value = optionValue;
+            optionElement.textContent = optionValue;
             selectElement.appendChild(optionElement);
         });
     }
@@ -662,22 +695,12 @@ class FilterManager {
      * @param {Date} endDate - Крайна дата
      */
     setDateRange(startDate, endDate) {
-        console.log('FilterManager: setDateRange извикан', {
-            startDate: startDate.toISOString(),
-            endDate: endDate.toISOString()
-        });
-        
         // Задаваме стойности на скритите date полета
         const formattedStartDate = this.formatDateForDateInput(startDate);
         const formattedEndDate = this.formatDateForDateInput(endDate);
         
         this.elements.startDateInput.value = formattedStartDate;
         this.elements.endDateInput.value = formattedEndDate;
-        
-        console.log('FilterManager: Дати след форматиране', {
-            formattedStartDate,
-            formattedEndDate
-        });
         
         // Синхронизираме визуалните полета
         this.syncDateFields();
@@ -688,8 +711,6 @@ class FilterManager {
         this.elements.endDateInput.dispatchEvent(changeEvent);
         
         // Директно прилагаме филтрите веднага
-        console.log('FilterManager: Автоматично прилагане на филтри след промяна на датите');
-        // Директно извикваме applyFilters след 50ms, за да се уверим, че събитията са обработени
         setTimeout(() => {
             this.applyFilters();
         }, 50);
@@ -703,17 +724,11 @@ class FilterManager {
         const oneWeekAgo = new Date();
         oneWeekAgo.setDate(today.getDate() - 7);
         
-        console.log('FilterManager: setDateRangeLastWeek извикан', {
-            oneWeekAgo: oneWeekAgo.toISOString(),
-            today: today.toISOString()
-        });
-        
         // Пряко манипулиране на таблицата с транзакции преди да зададем датите
         const transactionsTableBody = document.getElementById('transactions-table-body');
         if (transactionsTableBody) {
             // Изчистваме таблицата
             transactionsTableBody.innerHTML = '';
-            console.log('FilterManager: Таблицата с транзакции е изчистена в setDateRangeLastWeek');
         }
         
         // Задаваме датите
