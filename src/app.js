@@ -9,6 +9,4 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Зареждаме данните
     dashboardView.loadData();
-    
-    console.log('Приложението е заредено успешно!');
 });

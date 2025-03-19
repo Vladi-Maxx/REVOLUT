@@ -75,11 +75,18 @@ class QuickFilterManager {
      * Настройване на датите за последната седмица
      */
     setDateRangeLastWeek() {
+        console.log('QuickFilterManager: Извикване на setDateRangeLastWeek');
         this.resetQuickFilterButtons();
         this.lastWeekButton.classList.add('active');
         
         // Използваме FilterManager за задаване на датов диапазон
         this.filterManager.setDateRangeLastWeek();
+        
+        // Директно проверяваме дали датите са актуализирани правилно
+        console.log('QuickFilterManager: Дати след setDateRangeLastWeek', {
+            startDate: this.filterManager.elements.startDateInput.value,
+            endDate: this.filterManager.elements.endDateInput.value
+        });
         
         // Прилагаме филтрите чрез callback
         this.applyFiltersCallback();

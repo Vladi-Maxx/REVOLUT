@@ -5,6 +5,7 @@ class ChartComponent {
     constructor() {
         this.chartCanvas = document.getElementById('merchants-chart');
         this.chart = null;
+        this.currentMerchants = []; // Съхраняваме референция към текущите търговци
     }
 
     /**
@@ -12,23 +13,88 @@ class ChartComponent {
      * @param {Array} merchantsData - Данни за търговците
      */
     initChart(merchantsData) {
-        if (!merchantsData || !Array.isArray(merchantsData)) return;
+        if (!merchantsData || !Array.isArray(merchantsData)) {
+            console.error('ChartComponent: Няма валидни данни за графиката');
+            return;
+        }
+        
+        // Разрушаваме старата графика ако има такава
+        if (this.chart) {
+            this.chart.destroy();
+            this.chart = null;
+        }
+        
+        // Проверяваме дали имаме търговци
+        if (merchantsData.length === 0) {
+            console.warn('ChartComponent: Няма данни за търговци, не се създава графика');
+            return;
+        }
 
-        // Вземаме само топ 10 търговци за по-добра визуализация
-        const topMerchants = merchantsData.slice(0, 10);
+        // Вземаме търговците от филтрирания резултат (до макс. 10 за прегледност)
+        // Добавяме проверка за типовете данни
+        const formattedMerchants = merchantsData.map(merchant => {
+            if (!merchant || typeof merchant !== 'object') {
+                return {
+                    name: 'Неизвестен',
+                    totalAmount: 0,
+                    count: 0
+                };
+            }
+            // Гарантираме, че имаме коректни данни за всеки търговец
+            return {
+                name: merchant.name ? String(merchant.name) : 'Неизвестен',
+                totalAmount: Math.abs(merchant.totalAmount || 0),
+                count: merchant.count || 0
+            };
+        });
+        
+        // Сортираме по сума и взимаме топ 10
+        const topMerchants = formattedMerchants
+            .sort((a, b) => b.totalAmount - a.totalAmount)
+            .slice(0, 10);
+        
+        // Проверка за числови имена на търговци и опит за поправянето им
+        const fixedMerchants = topMerchants.map(merchant => {
+            const name = merchant.name;
+            // Проверява дали името е число или се състои само от цифри
+            if (/^\d+$/.test(name)) {
+                // Заместваме с по-описателно име
+                return {
+                    ...merchant,
+                    name: `Търговец #${name}`
+                };
+            }
+            return merchant;
+        });
+        
+        // Запазваме референция към коригираните търговци
+        this.currentMerchants = fixedMerchants;
         
         // Подготвяме данните за графиката
-        const labels = topMerchants.map(merchant => merchant.name);
-        const data = topMerchants.map(merchant => Math.abs(merchant.totalAmount));
+        // Гарантираме, че имената на търговците са текстови стрингове
+        // Използваме директно имената на търговците
+        const labels = [];
+        
+        // Гарантираме, че имаме стрингове за имената
+        for (let i = 0; i < topMerchants.length; i++) {
+            const merchant = topMerchants[i];
+            labels.push(String(merchant.name)); // Експлицитно превръщане в стринг
+        }
+        
+        const data = topMerchants.map(merchant => Math.abs(merchant.totalAmount || 0));
         
         // Генерираме случайни цветове за сегментите
         const backgroundColors = this.generateColors(topMerchants.length);
         
+        // Запазваме локална референция за използване в Chart.js функциите
+        const self = this;
+
         // Създаваме графиката
         this.chart = new Chart(this.chartCanvas, {
             type: 'pie',
             data: {
-                labels: labels,
+                // Задаваме чисто нови лейбъли за пие-графиката
+                labels: topMerchants.map(m => String(m.name)),
                 datasets: [{
                     label: 'Разходи по търговци',
                     data: data,
@@ -46,16 +112,42 @@ class ChartComponent {
                             font: {
                                 size: 12
                             },
-                            boxWidth: 15
+                            boxWidth: 15,
+                            // Използваме оригиналните имена на търговците
+                            generateLabels: function(chart) {
+                                // Използваме съхранената референция към текущите търговци
+                                const merchants = self.currentMerchants;
+                                const meta = chart.getDatasetMeta(0);
+                                
+                                // Директно използваме имената на търговците
+                                return merchants.map(function(merchant, i) {
+                                    const style = meta.controller.getStyle(i);
+                                    const merchantName = String(merchant.name);
+                                    
+                                    return {
+                                        text: merchantName,
+                                        fillStyle: style.backgroundColor,
+                                        strokeStyle: style.borderColor,
+                                        lineWidth: style.borderWidth,
+                                        hidden: false,
+                                        index: i
+                                    };
+                                });
+                            }
                         }
                     },
                     tooltip: {
                         callbacks: {
-                            label: (context) => {
+                            label: function(context) {
                                 const value = context.raw;
                                 const total = context.dataset.data.reduce((a, b) => a + b, 0);
                                 const percentage = Math.round((value / total) * 100);
-                                return `${context.label}: ${DataUtils.formatAmount(value)} (${percentage}%)`;
+                                
+                                // Използваме името на търговеца от съхранения масив
+                                const merchantName = self.currentMerchants[context.dataIndex].name;
+                                
+                                // Форматираме изхода
+                                return `${merchantName}: ${DataUtils.formatAmount(value)} (${percentage}%)`;
                             }
                         }
                     }
@@ -69,7 +161,10 @@ class ChartComponent {
      * @param {Array} merchantsData - Данни за търговците
      */
     updateChart(merchantsData) {
-        if (!merchantsData || !Array.isArray(merchantsData)) return;
+        if (!merchantsData || !Array.isArray(merchantsData)) {
+            console.error('ChartComponent: Няма валидни данни за обновяване на графиката');
+            return;
+        }
         
         // Ако графиката вече съществува, я унищожаваме
         if (this.chart) {

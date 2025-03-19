@@ -46,8 +46,7 @@ class DashboardView {
             supabaseService: supabaseService,
             dataUtils: DataUtils,
             notificationCallback: this.showNotification.bind(this),
-            onFilterSuccess: null,
-            formatDateFn: this.formatDateForDateInput.bind(this)
+            onFilterSuccess: null
         });
         
         // Инициализиране на QuickFilterManager-а
@@ -59,7 +58,8 @@ class DashboardView {
                 currentYearButton: this.currentYearButton
             },
             filterManager: this.filterManager,
-            applyFiltersCallback: this.applyFilters.bind(this)
+            // Свързваме callback функцията с правилния контекст (this)
+            applyFiltersCallback: () => this.applyFilters()
         });
         
         // Инициализиране на филтрите
@@ -102,11 +102,6 @@ class DashboardView {
      * Добавяне на слушатели за събития
      */
     addEventListeners() {
-        // Слушател за бутона за прилагане на филтри
-        this.applyFiltersButton.addEventListener('click', () => {
-            this.applyFilters();
-        });
-        
         // Слушател за избор на търговец
         this.merchantsTableComponent.setOnMerchantSelectListener((merchant) => {
             this.onMerchantSelect(merchant);
@@ -116,12 +111,6 @@ class DashboardView {
         this.transactionsTableComponent.setDeleteTransactionCallback((transactionId, transaction) => {
             this.deleteTransaction(transactionId, transaction);
         });
-        
-        // Слушатели за датите
-        this.setupDateInputListeners();
-        
-        // Синхронизиране на видимите и скритите полета за дати
-        this.syncDateFields();
         
         // Инициализиране на елементите за импорт на CSV
         this.importCsvButton = document.getElementById('import-csv');
@@ -142,6 +131,14 @@ class DashboardView {
                 this.csvImporter.importCsvFile(file, this.allTransactions);
             }
         });
+        
+        // Добавяме директен слушател за бутона за прилагане на филтри
+        const applyFiltersBtn = document.getElementById('apply-filters');
+        if (applyFiltersBtn) {
+            applyFiltersBtn.addEventListener('click', () => {
+                this.applyFilters();
+            });
+        }
     }
 
     /**
@@ -214,10 +211,94 @@ class DashboardView {
             // Изчисляваме статистики
             const stats = DataUtils.calculateTransactionStats(filteredTransactions);
             
-            // Обновяваме компонентите
-            this.summaryComponent.updateSummary(stats);
+            // Проверяваме DOM елементите на таблиците
+            const merchantsTableBody = document.getElementById('merchants-table-body');
+            const transactionsTableBody = document.getElementById('transactions-table-body');
+            
+            // Проверка на DOM елементи
+            
+            // Пряко обновяване на таблицата с транзакции, ако елементът съществува
+            if (transactionsTableBody) {
+                // Изчистваме таблицата
+                transactionsTableBody.innerHTML = '';
+                
+
+                
+                // Добавяме редове за всяка транзакция
+                filteredTransactions.forEach(transaction => {
+                    const row = document.createElement('tr');
+                    
+                    // Форматираме датите
+                    const completedDate = transaction['Completed Date'] 
+                        ? DataUtils.formatDate(transaction['Completed Date']) 
+                        : '-';
+                        
+                    const startDate = transaction['Started Date'] 
+                        ? DataUtils.formatDate(transaction['Started Date']) 
+                        : '-';
+                    
+                    // Форматираме сумата
+                    const amount = DataUtils.formatAmount(
+                        parseFloat(transaction.Amount) || 0, 
+                        transaction.Currency || 'BGN'
+                    );
+                    
+                    // Създаваме клетките за реда
+                    row.innerHTML = `
+                        <td>${startDate}</td>
+                        <td>${completedDate}</td>
+                        <td>${transaction.Description || '-'}</td>
+                        <td>${amount}</td>
+                        <td>${transaction.Currency || '-'}</td>
+                        <td>${transaction.Type || '-'}</td>
+                        <td>
+                            <button class="btn btn-delete" data-id="${transaction.id}">
+                                <i class="fa fa-trash"></i> Изтрий
+                            </button>
+                        </td>
+                    `;
+                    
+                    // Добавяме реда към таблицата
+                    transactionsTableBody.appendChild(row);
+                });
+                
+                // Таблицата с транзакции е обновена успешно
+            }
+            
+            // Обновяваме компонентите чрез стандартния механизъм
+            // Подготовка на данните за сумари компонент
+            
+            // Обновяваме всички компоненти с филтрираните данни
+            this.summaryComponent.updateSummary(result.stats || stats);
             this.merchantsTableComponent.updateTable(merchantsData);
-            this.chartComponent.updateChart(merchantsData);
+            
+            // Подготовка на данни за графиката
+            let chartData = [];
+            
+            // Използваме подготвените данни от FilterManager, ако са налични
+            if (this.filterManager && this.filterManager.preparedChartData && this.filterManager.preparedChartData.length > 0) {
+                chartData = this.filterManager.preparedChartData;
+            } else {
+                // Ако нямаме данни от FilterManager, създаваме ги от обработените данни
+                // Използваме правилните ключове на обекта merchantsData
+                chartData = Object.keys(merchantsData).map(merchantName => {
+                    const data = merchantsData[merchantName];
+                    return {
+                        name: String(merchantName), // ИЗРИЧНО превръщаме в стринг
+                        totalAmount: Math.abs(data.totalAmount || 0),
+                        count: data.count || 0
+                    };
+                }).sort((a, b) => b.totalAmount - a.totalAmount); // Сортираме по сума в низходящ ред
+            }
+            
+            // Графиката вече работи коректно, затова премахваме излишните логове
+            
+            // Обновяваме графиката
+            if (chartData && chartData.length > 0) {
+                this.chartComponent.updateChart(chartData);
+            } else {
+                console.warn('DashboardView: Няма валидни данни за графиката');
+            }
             this.transactionsTableComponent.updateTable(filteredTransactions);
             
         } catch (error) {
@@ -268,119 +349,9 @@ class DashboardView {
         console.error(message);
     }
 
-    /**
-     * Форматиране на дата за input поле в български формат (дд.мм.гггг)
-     * @param {Date} date - Дата
-     * @returns {string} Форматирана дата
-     */
-    formatDateForInput(date) {
-        const year = date.getFullYear();
-        const month = String(date.getMonth() + 1).padStart(2, '0');
-        const day = String(date.getDate()).padStart(2, '0');
-        return `${day}.${month}.${year}`;
-    }
+
     
-    /**
-     * Форматиране на дата за HTML5 date input поле (yyyy-mm-dd)
-     * @param {Date} date - Дата
-     * @returns {string} Форматирана дата за HTML5 date input
-     */
-    formatDateForDateInput(date) {
-        const year = date.getFullYear();
-        const month = String(date.getMonth() + 1).padStart(2, '0');
-        const day = String(date.getDate()).padStart(2, '0');
-        return `${year}-${month}-${day}`;
-    }
-    
-    /**
-     * Парсване на дата в български формат (дд.мм.гггг)
-     * @param {string} dateString - Дата като стринг във формат дд.мм.гггг
-     * @returns {Date} Обект Дата
-     */
-    parseBulgarianDate(dateString) {
-        if (!dateString) return null;
-        
-        // Регулярен израз за формат дд.мм.гггг
-        const bgRegex = /^(\d{1,2})\.(\d{1,2})\.(\d{4})$/;
-        
-        if (bgRegex.test(dateString)) {
-            const parts = dateString.split('.');
-            const day = parseInt(parts[0], 10);
-            const month = parseInt(parts[1], 10) - 1; // месеците в JavaScript са от 0-11
-            const year = parseInt(parts[2], 10);
-            
-            const date = new Date(year, month, day);
-            
-            // Проверка дали датата е валидна
-            if (!isNaN(date.getTime())) {
-                return date;
-            }
-        }
-        
-        // Ако не е във формат дд.мм.гггг, опитваме стандартния конструктор
-        return new Date(dateString);
-    }
-    
-    /**
-     * Настройване на слушатели за полетата за дати
-     */
-    setupDateInputListeners() {
-        // Слушатели за скритите date полета
-        this.startDateInput.addEventListener('change', (event) => {
-            if (event.target.value) {
-                const date = new Date(event.target.value);
-                // Обновяваме видимото текстово поле с български формат
-                this.startDateDisplay.value = this.formatDateForInput(date);
-            }
-        });
-        
-        this.endDateInput.addEventListener('change', (event) => {
-            if (event.target.value) {
-                const date = new Date(event.target.value);
-                // Обновяваме видимото текстово поле с български формат
-                this.endDateDisplay.value = this.formatDateForInput(date);
-            }
-        });
-        
-        // Слушатели за видимите текстови полета
-        this.startDateDisplay.addEventListener('change', (event) => {
-            if (event.target.value) {
-                // Парсваме българския формат
-                const date = this.parseBulgarianDate(event.target.value);
-                if (date && !isNaN(date.getTime())) {
-                    // Обновяваме скритото date поле
-                    this.startDateInput.value = this.formatDateForDateInput(date);
-                }
-            }
-        });
-        
-        this.endDateDisplay.addEventListener('change', (event) => {
-            if (event.target.value) {
-                // Парсваме българския формат
-                const date = this.parseBulgarianDate(event.target.value);
-                if (date && !isNaN(date.getTime())) {
-                    // Обновяваме скритото date поле
-                    this.endDateInput.value = this.formatDateForDateInput(date);
-                }
-            }
-        });
-        
-        // Клик върху текстовите полета отваря календарите
-        this.startDateDisplay.addEventListener('click', () => {
-            this.startDateInput.showPicker();
-        });
-        
-        this.endDateDisplay.addEventListener('click', () => {
-            this.endDateInput.showPicker();
-        });
-    }
-    
-    /**
-     * Синхронизиране на полетата за дати
-     */
-    syncDateFields() {
-        this.filterManager.syncDateFields();
-    }
+
     
 
     

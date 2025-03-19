@@ -32,7 +32,10 @@ class MerchantsTableComponent {
      * @param {Array} merchantsData - Данни за търговците
      */
     updateTable(merchantsData) {
-        if (!merchantsData || !Array.isArray(merchantsData)) return;
+        if (!merchantsData || !Array.isArray(merchantsData)) {
+            console.warn('MerchantsTableComponent: невалидни данни');
+            return;
+        }
         
         // Запазваме текущите данни
         this.currentData = merchantsData;
@@ -41,7 +44,7 @@ class MerchantsTableComponent {
         this.tableBodyElement.innerHTML = '';
         
         // Добавяме редове за всеки търговец
-        merchantsData.forEach(merchant => {
+        merchantsData.forEach((merchant, index) => {
             const row = document.createElement('tr');
             
             // Създаваме клетките за реда
@@ -61,7 +64,11 @@ class MerchantsTableComponent {
             
             // Добавяме реда към таблицата
             this.tableBodyElement.appendChild(row);
+            
+
         });
+        
+
     }
 
     /**
