@@ -49,10 +49,10 @@ class MerchantsTableComponent {
             
             // Създаваме клетките за реда
             row.innerHTML = `
-                <td>${merchant.name}</td>
+                <td><span class="transaction-description">${merchant.name}</span></td>
                 <td>${merchant.count}</td>
-                <td>${DataUtils.formatAmount(merchant.totalAmount)}</td>
-                <td>${DataUtils.formatAmount(merchant.averageAmount)}</td>
+                <td><span class="${merchant.totalAmount < 0 ? 'amount-negative' : 'amount-positive'}">${DataUtils.formatAmount(merchant.totalAmount)}</span></td>
+                <td><span class="${merchant.averageAmount < 0 ? 'amount-negative' : 'amount-positive'}">${DataUtils.formatAmount(merchant.averageAmount)}</span></td>
             `;
             
             // Добавяме слушател за клик върху реда

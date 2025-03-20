@@ -36,14 +36,17 @@ class TransactionsTableComponent {
                 transaction.Currency || 'BGN'
             );
             
+            // Определяме класа за сумата (положителна или отрицателна)
+            const amountClass = parseFloat(transaction.Amount) < 0 ? 'amount-negative' : 'amount-positive';
+            
             // Създаваме клетките за реда
             row.innerHTML = `
                 <td>${startDate}</td>
                 <td>${completedDate}</td>
-                <td>${transaction.Description || '-'}</td>
-                <td>${amount}</td>
-                <td>${transaction.Currency || '-'}</td>
-                <td>${transaction.Type || '-'}</td>
+                <td><span class="transaction-description">${transaction.Description || '-'}</span></td>
+                <td><span class="${amountClass}">${amount}</span></td>
+                <td><span class="currency">${transaction.Currency || '-'}</span></td>
+                <td><span class="transaction-type">${transaction.Type || '-'}</span></td>
                 <td>
                     <button class="btn btn-delete" data-id="${transaction.id}">
                         <i class="fa fa-trash"></i> Изтрий

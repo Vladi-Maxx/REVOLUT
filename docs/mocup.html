@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Финансово приложение - Мокъп</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/@tailwindcss/browser@latest"></script>
+    <style>
+        /* Custom styles for the dropdown to ensure it looks good */
+        .custom-select-wrapper {
+            position: relative;
+            user-select: none;
+            flex-grow: 1;
+            min-width: 200px;
+        }
+
+        .custom-select-trigger {
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.75rem 1rem;
+            font-size: 0.875rem;
+            line-height: 1.25rem;
+            background-color: #fff;
+            border-width: 1px;
+            border-color: #d1d5db;
+            border-radius: 0.375rem;
+            color: #374151;
+            cursor: pointer;
+            transition: border-color 0.15s ease-in-out, shadow-sm 0.15s ease-in-out;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+        }
+
+        .custom-select-trigger:hover, .custom-select-wrapper:focus-within .custom-select-trigger {
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+        }
+
+        .custom-select-trigger span {
+            margin-right: 0.5rem;
+        }
+
+        .custom-select-trigger svg {
+            height: 1rem;
+            width: 1rem;
+            fill: currentColor;
+            color: #4b5563;
+        }
+
+        .custom-options {
+            position: fixed;
+            top: 100%;
+            left: 0;
+            right: auto;
+            z-index: 20;
+            background-color: #fff;
+            border-width: 1px;
+            border-color: #d1d5db;
+            border-radius: 0.375rem;
+            margin-top: 0.25rem;
+            overflow: auto;
+            max-height: 200px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(-10px);
+            transition: opacity 0.15s ease-in-out, visibility 0.15s ease-in-out, transform 0.15s ease-in-out;
+        }
+
+        .custom-select-wrapper.open .custom-options {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+        }
+
+
+        .custom-options li {
+            padding: 0.75rem 1rem;
+            font-size: 0.875rem;
+            line-height: 1.25rem;
+            color: #374151;
+            cursor: pointer;
+            transition: background-color 0.15s ease-in-out, color 0.15s ease-in-out;
+            white-space: nowrap;
+        }
+
+        .custom-options li:hover, .custom-options li.selected {
+            background-color: #f0f9ff;
+            color: #1e293b;
+        }
+
+        .custom-select-wrapper select {
+            position: absolute;
+            opacity: 0;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 font-sans antialiased">
+    <div class="mx-auto max-w-7xl p-4 sm:p-6 lg:p-8">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            <div class="bg-gradient-to-r from-blue-500 to-purple-500 rounded-lg shadow-md p-4 flex items-center justify-between">
+                <span class="text-sm font-medium text-white">Общо транзакции</span>
+                <span class="text-2xl font-semibold text-white">8</span>
+            </div>
+            <div class="bg-gradient-to-r from-green-500 to-teal-500 rounded-lg shadow-md p-4 flex items-center justify-between">
+                <span class="text-sm font-medium text-white">Обща сума</span>
+                <span class="text-2xl font-semibold text-white">-170,32 лв.</span>
+            </div>
+            <div class="bg-gradient-to-r from-blue-500 to-purple-500 rounded-lg shadow-md p-4 flex items-center justify-between">
+                <span class="text-sm font-medium text-white">Среден разход</span>
+                <span class="text-2xl font-semibold text-white">-21,29 лв.</span>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-lg shadow-md p-4 mb-6">
+            <div class="flex flex-wrap gap-4 items-end">
+                <div class="flex flex-col sm:flex-row gap-2 sm:items-center sm:gap-4">
+                    <label for="date-from" class="text-sm font-medium text-gray-700">От дата:</label>
+                    <input type="date" id="date-from" class="shadow-sm border border-blue-500 rounded-md py-2 px-3 focus:outline-none focus:border-blue-500 sm:max-w-xs">
+                </div>
+                <div class="flex flex-col sm:flex-row gap-2 sm:items-center sm:gap-4">
+                    <label for="date-to" class="text-sm font-medium text-gray-700">До дата:</label>
+                    <input type="date" id="date-to" class="shadow-sm border border-blue-500 rounded-md py-2 px-3 focus:outline-none focus:border-blue-500 sm:max-w-xs">
+                </div>
+
+                <div class="flex flex-col sm:flex-row gap-2 sm:items-center sm:gap-4 relative">
+                    <label for="currency" class="text-sm font-medium text-gray-700 mr-2">Валута:</label>
+                    <div class="custom-select-wrapper" id="currency-select-wrapper">
+                        <div class="custom-select-trigger" id="currency-select-trigger">
+                            <span class="text-blue-600">Всички</span>
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
+                        </div>
+                        <div class="custom-options" id="currency-select-options">
+                            <select id="currency" class="hidden">
+                                <option value="all">Всички</option>
+                                <option value="BGN">BGN</option>
+                                <option value="EUR">EUR</option>
+                                <option value="USD">USD</option>
+                            </select>
+                            <ul>
+                                <li data-value="all" class="text-blue-600">Всички</li>
+                                <li data-value="BGN" class="text-blue-600">BGN</li>
+                                <li data-value="EUR" class="text-blue-600">EUR</li>
+                                <li data-value="USD" class="text-blue-600">USD</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex flex-col sm:flex-row gap-2 sm:items-center sm:gap-4 relative">
+                    <label for="transaction-type" class="text-sm font-medium text-gray-700 mr-2">Тип транзакция:</label>
+                     <div class="custom-select-wrapper" id="transaction-type-select-wrapper">
+                        <div class="custom-select-trigger" id="transaction-type-select-trigger">
+                            <span class="text-blue-600">Всички</span>
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
+                        </div>
+                        <div class="custom-options" id="transaction-type-select-options">
+                            <select id="transaction-type" class="hidden">
+                                <option value="all">Всички</option>
+                                <option value="CARD_PAYMENT">Card Payment</option>
+                                <option value="BANK_TRANSFER">Bank Transfer</option>
+                                <option value="CASH">Cash</option>
+                            </select>
+                            <ul>
+                                 <li data-value="all" class="text-blue-600">Всички</li>
+                                <li data-value="CARD_PAYMENT" class="text-blue-600">Card Payment</li>
+                                <li data-value="BANK_TRANSFER" class="text-blue-600">Bank Transfer</li>
+                                 <li data-value="CASH" class="text-blue-600">Cash</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex gap-2">
+                    <button class="bg-gradient-to-r from-green-400 to-blue-500 hover:from-green-500 hover:to-blue-600 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline text-sm">
+                        Приложи
+                    </button>
+                </div>
+            </div>
+            <div class="flex flex-wrap gap-2 mt-4">
+                <button class="bg-gradient-to-r from-blue-500 to-purple-500 hover:from-purple-500 hover:to-pink-600 text-white font-semibold py-1 px-2 rounded text-sm">Последната седмица</button>
+                <button class="bg-gradient-to-r from-blue-500 to-purple-500 hover:from-purple-500 hover:to-pink-600 text-white font-semibold py-1 px-2 rounded text-sm">Текущ месец</button>
+                <button class="bg-gradient-to-r from-blue-500 to-purple-500 hover:from-purple-500 hover:to-pink-600 text-white font-semibold py-1 px-2 rounded text-sm">Предишен месец</button>
+                <button class="bg-gradient-to-r from-blue-500 to-purple-500 hover:from-purple-500 hover:to-pink-600 text-white font-semibold py-1 px-2 rounded text-sm">Текуща година</button>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+            <div class="bg-white rounded-lg shadow-md p-4">
+                <h2 class="text-lg font-semibold text-gray-700 mb-4">Транзакции по търговци</h2>
+                <div class="flex items-center justify-center h-64">
+                    <canvas id="traders-chart" width="400" height="400"></canvas>
+                </div>
+            </div>
+            <div class="bg-white rounded-lg shadow-md p-4">
+                <h2 class="text-lg font-semibold text-gray-700 mb-4">Разходи по категории</h2>
+                 <div class="flex items-center justify-center h-64">
+                    <canvas id="categories-chart" width="400" height="400"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-lg shadow-md p-4 mb-6">
+            <h2 class="text-lg font-semibold text-gray-700 mb-4">Топ търговци</h2>
+            <ul class="space-y-3">
+                <li class="bg-gradient-to-r from-teal-100 to-lime-100 rounded-md p-3 flex justify-between items-center">
+                    <span class="text-gray-800 font-medium">Yuppi Ood</span>
+                    <span class="text-teal-600 text-sm">6 транзакции</span>
+                </li>
+                <li class="bg-gradient-to-r from-teal-100 to-lime-100 rounded-md p-3 flex justify-between items-center">
+                    <span class="text-gray-800 font-medium">Buyap</span>
+                    <span class="text-teal-600 text-sm">1 транзакция</span>
+                </li>
+                 <li class="bg-gradient-to-r from-teal-100 to-lime-100 rounded-md p-3 flex justify-between items-center">
+                    <span class="text-gray-800 font-medium">Microsoft</span>
+                    <span class="text-teal-600 text-sm">1 транзакция</span>
+                </li>
+            </ul>
+        </div>
+
+        <div class="bg-white rounded-lg shadow-md p-4">
+            <h2 class="text-lg font-semibold text-gray-700 mb-4">Детайлни транзакции</h2>
+            <div class="overflow-x-auto">
+                <table class="min-w-full leading-normal shadow-md rounded-lg overflow-hidden">
+                    <thead class="bg-gray-200 text-gray-700">
+                        <tr>
+                            <th class="px-5 py-3 border-b-2 border-gray-200 text-left text-xs font-semibold uppercase tracking-wider">
+                                Описание
+                            </th>
+                            <th class="px-5 py-3 border-b-2 border-gray-200 text-left text-xs font-semibold uppercase tracking-wider">
+                                Сума
+                            </th>
+                            <th class="px-5 py-3 border-b-2 border-gray-200 text-left text-xs font-semibold uppercase tracking-wider">
+                                Валута
+                            </th>
+                            <th class="px-5 py-3 border-b-2 border-gray-200 text-left text-xs font-semibold uppercase tracking-wider">
+                                Тип
+                            </th>
+                            <th class="px-5 py-3 border-b-2 border-gray-200 text-left text-xs font-semibold uppercase tracking-wider">
+                                Действия
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white">
+                        <tr>
+                            <td class="px-5 py-5 border-b border-gray-200 text-sm">
+                                <span class="font-italic text-blue-800">Yuppi Ood</span>
+                            </td>
+                            <td class="px-5 py-5 border-b border-gray-200 text-sm">
+                                <span class="text-red-600 font-semibold">-7,50 лв.</span>
+                            </td>
+                            <td class="px-5 py-5 border-b border-gray-200 text-sm">
+                                <span class="font-mono text-gray-700">BGN</span>
+                            </td>
+                            <td class="px-5 py-5 border-b border-gray-200 text-sm">
+                                <span class="font-oblique font-sans text-blue-600">Card Payment</span>
+                            </td>
+                            <td class="px-5 py-5 border-b border-gray-200 text-sm">
+                                <button class="bg-gradient-to-r from-red-500 to-orange-500 hover:from-red-600 hover:to-orange-600 text-white font-bold py-1 px-2 rounded focus:outline-none focus:shadow-outline text-xs">
+                                    Изтрий
+                                </button>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="px-5 py-5 border-b border-gray-200 text-sm">
+                                <span class="font-italic text-blue-800">Yuppi Ood</span>
+                            </td>
+                            <td class="px-5 py-5 border-b border-gray-200 text-sm">
+                                 <span class="text-red-600 font-semibold">-7,50 лв.</span>
+                            </td>
+                            <td class="px-5 py-5 border-b border-gray-200 text-sm">
+                                <span class="font-mono text-gray-700">BGN</span>
+                            </td>
+                             <td class="px-5 py-5 border-b border-gray-200 text-sm">
+                                 <span class="font-oblique font-sans text-blue-600">Card Payment</span>
+                            </td>
+                            <td class="px-5 py-5 border-b border-gray-200 text-sm">
+                                <button class="bg-gradient-to-r from-red-500 to-orange-500 hover:from-red-600 hover:to-orange-600 text-white font-bold py-1 px-2 rounded focus:outline-none focus:shadow-outline text-xs">
+                                    Изтрий
+                                </button>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="px-5 py-5 border-b border-gray-200 text-sm">
+                                <span class="font-italic text-blue-800">Yuppi Ood</span>
+                            </td>
+                            <td class="px-5 py-5 border-b border-gray-200 text-sm">
+                                <span class="text-red-600 font-semibold">-42,89 лв.</span>
+                            </td>
+                            <td class="px-5 py-5 border-b border-gray-200 text-sm">
+                                <span class="font-mono text-gray-700">BGN</span>
+                            </td>
+                            <td class="px-5 py-5 border-b border-gray-200 text-sm">
+                                 <span class="font-oblique font-sans text-blue-600">Card Payment</span>
+                            </td>
+                            <td class="px-5 py-5 border-b border-gray-200 text-sm">
+                                <button class="bg-gradient-to-r from-red-500 to-orange-500 hover:from-red-600 hover:to-orange-600 text-white font-bold py-1 px-2 rounded focus:outline-none focus:shadow-outline text-xs">
+                                    Изтрий
+                                </button>
+                            </td>
+                        </tr>
+                         <tr>
+                            <td class="px-5 py-5 border-b border-gray-200 text-sm">
+                                <span class="font-italic text-blue-800">Yuppi Ood</span>
+                            </td>
+                            <td class="px-5 py-5 border-b border-gray-200 text-sm">
+                                <span class="text-red-600 font-semibold">-29,07 лв.</span>
+                            </td>
+                            <td class="px-5 py-5 border-b border-gray-200 text-sm">
+                                <span class="font-mono text-gray-700">BGN</span>
+                            </td>
+                            <td class="px-5 py-5 border-b border-gray-200 text-sm">
+                                <span class="font-oblique font-sans text-blue-600">Card Payment</span>
+                            </td>
+                            <td class="px-5 py-5 border-b border-gray-200 text-sm">
+                                <button class="bg-gradient-to-r from-red-500 to-orange-500 hover:from-red-600 hover:to-orange-600 text-white font-bold py-1 px-2 rounded focus:outline-none focus:shadow-outline text-xs">
+                                     Изтрий
+                                </button>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        const currencySelectWrapper = document.getElementById('currency-select-wrapper');
+        const currencySelectTrigger = document.getElementById('currency-select-trigger');
+        const currencySelectOptions = document.getElementById('currency-select-options');
+        const currencySelectElement = document.getElementById('currency');
+
+        const transactionTypeSelectWrapper = document.getElementById('transaction-type-select-wrapper');
+        const transactionTypeSelectTrigger = document.getElementById('transaction-type-select-trigger');
+        const transactionTypeSelectOptions = document.getElementById('transaction-type-select-options');
+        const transactionTypeSelectElement = document.getElementById('transaction-type');
+
+        function createCustomDropdown(selectElement, triggerElement, optionsElement) {
+            triggerElement.addEventListener('click', () => {
+                optionsElement.classList.toggle('open');
+                if (optionsElement.classList.contains('open')) {
+                     // Calculate and set dropdown position and width when opening
+                    const triggerRect = triggerElement.getBoundingClientRect();
+                    optionsElement.style.top = triggerRect.bottom + 'px';
+                    optionsElement.style.left = triggerRect.left + 'px';
+                    optionsElement.style.width = triggerRect.width + 'px';
+                }
+            });
+
+            optionsElement.addEventListener('click', (event) => {
+                if (event.target.tagName === 'LI') {
+                    const value = event.target.dataset.value;
+                    triggerElement.querySelector('span').textContent = event.target.textContent;
+                    selectElement.value = value;
+                    optionsElement.classList.remove('open');
+                }
+            });
+
+            selectElement.addEventListener('change', (event) => {
+                const selectedOptionText = optionsElement.querySelector(`[data-value="${event.target.value}"]`).textContent;
+                triggerElement.querySelector('span').textContent = selectedOptionText;
+            });
+
+            document.addEventListener('click', (event) => {
+                if (!currencySelectWrapper.contains(event.target) && !optionsElement.contains(event.target)) {
+                    optionsElement.classList.remove('open');
+                }
+            });
+        }
+
+        createCustomDropdown(currencySelectElement, currencySelectTrigger, currencySelectOptions);
+        createCustomDropdown(transactionTypeSelectElement, transactionTypeSelectTrigger, transactionTypeSelectOptions);
+
+
+        // Sample data for the charts
+        const tradersData = {
+            labels: ['Yuppi Ood', 'Buyap', 'Microsoft'],
+            datasets: [{
+                label: 'Обща сума',
+                data: [120.39, 31.93, 18.00],
+                backgroundColor: [
+                    '#FF6384',
+                    '#36A2EB',
+                    '#FFCE56'
+                ],
+                hoverOffset: 4
+            }]
+        };
+
+        const categoriesData = {
+            labels: ['Храна', 'Транспорт', 'Развлечения', 'Пазаруване'],
+            datasets: [{
+                label: 'Разходи',
+                data: [50, 20, 15, 30],
+                backgroundColor: [
+                    '#4BC0C0',
+                    '#9966FF',
+                    '#FF9F40',
+                    '#C0C0C0'
+                ],
+                borderWidth: 1
+            }]
+        };
+
+        // Chart configuration
+        const pieChartConfig = {
+            type: 'pie',
+            data: tradersData,options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                    legend: {
+                        position: 'top',
+                    },
+                }
+            }
+        };
+
+        const barChartConfig = {
+            type: 'bar',
+            data: categoriesData,
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                },
+                plugins: {
+                    legend: {
+                        position: 'top',
+                    },
+                }
+            }
+        };
+
+        // Render the charts
+        const tradersChartCtx = document.getElementById('traders-chart').getContext('2d');
+        const categoriesChartCtx = document.getElementById('categories-chart').getContext('2d');
+
+        new Chart(tradersChartCtx, pieChartConfig);
+        new Chart(categoriesChartCtx, barChartConfig);
+    </script>
+</body>
+</html>
