@@ -458,6 +458,177 @@ class SupabaseService {
             throw error;
         }
     }
+    
+    /**
+     * Извличане на всички уникални търговци от транзакциите
+     * @returns {Promise<Array>} Масив с уникални търговци и техните статистики
+     */
+    async getUniqueMerchants() {
+        try {
+            // Извличаме всички транзакции
+            const transactions = await this.getAllTransactions();
+            
+            // Групираме транзакциите по търговци и изчисляваме статистики
+            const merchantsWithStats = DataUtils.groupTransactionsByMerchantAbsolute(transactions);
+            
+            // Сортираме по абсолютна стойност на общата сума в низходящ ред
+            return merchantsWithStats.sort((a, b) => 
+                Math.abs(b.totalAmount) - Math.abs(a.totalAmount));
+        } catch (error) {
+            console.error('Грешка при извличане на уникални търговци:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Извличане на всички търговци със статистики за техните транзакции
+     * @returns {Promise<Array>} Масив с търговци и техните статистики
+     */
+    async getMerchantsWithStats() {
+        try {
+            // Извличаме всички уникални търговци
+            const merchants = await this.getUniqueMerchants();
+            
+            // За всеки търговец проверяваме дали има асоциирана категория
+            for (const merchant of merchants) {
+                try {
+                    const category = await this.getMerchantCategory(merchant.name);
+                    merchant.category = category;
+                } catch (error) {
+                    console.error(`Грешка при извличане на категория за търговец ${merchant.name}:`, error);
+                    merchant.category = null;
+                }
+            }
+            
+            return merchants;
+        } catch (error) {
+            console.error('Грешка при извличане на търговци със статистики:', error);
+            throw error;
+        }
+    }
+    
+    /**
+     * Извличане на всички търговци, които вече са асоциирани с категории
+     * @returns {Promise<Array>} Масив с имена на търговци, които имат категория
+     */
+    async getAssignedMerchantNames() {
+        try {
+            const { data, error } = await this.supabase
+                .from(this.merchantCategoriesTable)
+                .select('merchant_name');
+                
+            if (error) {
+                console.error('Грешка при извличане на асоциирани търговци:', error);
+                throw error;
+            }
+            
+            return data ? data.map(item => item.merchant_name) : [];
+        } catch (error) {
+            console.error('Грешка при извличане на асоциирани търговци:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Извличане на търговци, които не са асоциирани с категория
+     * @returns {Promise<Array>} Масив с търговци без категория
+     */
+    async getUnassignedMerchants() {
+        try {
+            // Извличаме всички уникални търговци
+            const allMerchants = await this.getUniqueMerchants();
+            
+            // Извличаме имената на търговците, които вече имат категория
+            const assignedMerchantNames = await this.getAssignedMerchantNames();
+            
+            // Филтрираме само тези, които не са в списъка с асоциирани търговци
+            return allMerchants.filter(merchant => !assignedMerchantNames.includes(merchant.name));
+        } catch (error) {
+            console.error('Грешка при извличане на търговци без категория:', error);
+            throw error;
+        }
+    }
+    
+    /**
+     * Извличане на търговци с техните статистики за дадена категория
+     * @param {string} categoryId - ID на категорията
+     * @returns {Promise<Array>} Масив с търговци и техните статистики
+     */
+    async getMerchantsWithStatsByCategory(categoryId) {
+        try {
+            if (!categoryId) {
+                throw new Error('Не е предоставен ID на категорията');
+            }
+            
+            // Извличаме имената на търговците в категорията
+            const merchantNames = await this.getMerchantsByCategory(categoryId);
+            
+            if (merchantNames.length === 0) {
+                return [];
+            }
+            
+            // Извличаме всички транзакции
+            const transactions = await this.getAllTransactions();
+            
+            // Филтрираме транзакциите само за търговците в категорията
+            const filteredTransactions = transactions.filter(transaction => 
+                merchantNames.includes(transaction.Description));
+            
+            // Групираме транзакциите по търговци и изчисляваме статистики
+            const merchantsWithStats = DataUtils.groupTransactionsByMerchantAbsolute(filteredTransactions);
+            
+            // Сортираме по абсолютна стойност на общата сума в низходящ ред
+            return merchantsWithStats.sort((a, b) => 
+                Math.abs(b.totalAmount) - Math.abs(a.totalAmount));
+        } catch (error) {
+            console.error('Грешка при извличане на търговци със статистики по категория:', error);
+            throw error;
+        }
+    }
+    
+    /**
+     * Изчисляване на статистики за категория
+     * @param {string} categoryId - ID на категорията
+     * @returns {Promise<Object>} Обект със статистики за категорията
+     */
+    async getCategoryStats(categoryId) {
+        try {
+            if (!categoryId) {
+                throw new Error('Не е предоставен ID на категорията');
+            }
+            
+            // Извличаме търговците със статистики за категорията
+            const merchantsWithStats = await this.getMerchantsWithStatsByCategory(categoryId);
+            
+            // Изчисляваме общата сума и брой транзакции за категорията
+            let totalAmount = 0;
+            let totalTransactions = 0;
+            
+            merchantsWithStats.forEach(merchant => {
+                totalAmount += merchant.totalAmount;
+                totalTransactions += merchant.count;
+            });
+            
+            // Извличаме всички транзакции за изчисляване на процента
+            const allTransactions = await this.getAllTransactions();
+            const allTotalAmount = allTransactions.reduce((sum, transaction) => 
+                sum + Math.abs(parseFloat(transaction.Amount) || 0), 0);
+            
+            // Изчисляваме процента от общите разходи
+            const percentage = allTotalAmount > 0 ? 
+                (Math.abs(totalAmount) / allTotalAmount) * 100 : 0;
+            
+            return {
+                totalAmount,
+                totalTransactions,
+                percentage,
+                merchantsCount: merchantsWithStats.length
+            };
+        } catch (error) {
+            console.error('Грешка при изчисляване на статистики за категория:', error);
+            throw error;
+        }
+    }
 
     /**
      * Задаване на категория за търговец
@@ -514,6 +685,59 @@ class SupabaseService {
             }
         } catch (error) {
             console.error('Грешка при задаване на категория за търговец:', error);
+            return { success: false, error: error.message };
+        }
+    }
+    
+    /**
+     * Задаване на категория за множество търговци
+     * @param {Array} merchantNames - Масив с имена на търговци
+     * @param {string} categoryId - ID на категорията
+     * @returns {Promise<Object>} Резултат от операцията
+     */
+    async setMerchantCategoryBatch(merchantNames, categoryId) {
+        try {
+            if (!merchantNames || !Array.isArray(merchantNames) || merchantNames.length === 0) {
+                return { success: false, error: 'Не са предоставени имена на търговци' };
+            }
+            
+            if (!categoryId) {
+                return { success: false, error: 'Не е предоставен ID на категорията' };
+            }
+            
+            // Масив за съхранение на резултатите
+            const results = {
+                success: true,
+                successCount: 0,
+                errorCount: 0,
+                errors: []
+            };
+            
+            // Обработваме всеки търговец последователно
+            for (const merchantName of merchantNames) {
+                try {
+                    const result = await this.setMerchantCategory(merchantName, categoryId);
+                    
+                    if (result.success) {
+                        results.successCount++;
+                    } else {
+                        results.errorCount++;
+                        results.errors.push({ merchantName, error: result.error });
+                    }
+                } catch (error) {
+                    results.errorCount++;
+                    results.errors.push({ merchantName, error: error.message });
+                }
+            }
+            
+            // Ако има грешки, отбелязваме това в общия резултат
+            if (results.errorCount > 0) {
+                results.success = false;
+            }
+            
+            return results;
+        } catch (error) {
+            console.error('Грешка при задаване на категория за множество търговци:', error);
             return { success: false, error: error.message };
         }
     }

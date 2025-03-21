@@ -43,6 +43,52 @@ class DataUtils {
         // Сортираме по обща сума в низходящ ред
         return merchantsArray.sort((a, b) => b.totalAmount - a.totalAmount);
     }
+    
+    /**
+     * Групиране на транзакции по търговци с използване на абсолютни стойности
+     * @param {Array} transactions - Масив с транзакции
+     * @returns {Array} Масив с групирани данни по търговци
+     */
+    static groupTransactionsByMerchantAbsolute(transactions) {
+        // Създаваме обект за съхранение на групираните данни
+        const merchantsMap = {};
+
+        // Обхождаме всички транзакции
+        transactions.forEach(transaction => {
+            // Използваме Description като име на търговеца
+            const merchantName = transaction.Description || 'Неизвестен';
+            const amount = parseFloat(transaction.Amount) || 0;
+            const absAmount = Math.abs(amount); // Използваме абсолютната стойност
+
+            // Ако търговецът не съществува в обекта, го създаваме
+            if (!merchantsMap[merchantName]) {
+                merchantsMap[merchantName] = {
+                    name: merchantName,
+                    count: 0,
+                    totalAmount: 0,          // Реалната сума (може да е положителна или отрицателна)
+                    totalAbsoluteAmount: 0,  // Абсолютната сума (винаги положителна)
+                    averageAmount: 0,
+                    transactions: []
+                };
+            }
+
+            // Увеличаваме броя транзакции и сумите
+            merchantsMap[merchantName].count += 1;
+            merchantsMap[merchantName].totalAmount += amount; // Реалната сума
+            merchantsMap[merchantName].totalAbsoluteAmount += absAmount; // Абсолютната сума
+            merchantsMap[merchantName].transactions.push(transaction);
+        });
+
+        // Преобразуваме обекта в масив и изчисляваме средната сума
+        const merchantsArray = Object.values(merchantsMap).map(merchant => {
+            merchant.averageAmount = merchant.totalAmount / merchant.count;
+            merchant.averageAbsoluteAmount = merchant.totalAbsoluteAmount / merchant.count;
+            return merchant;
+        });
+
+        // Сортираме по абсолютна стойност на общата сума в низходящ ред
+        return merchantsArray.sort((a, b) => b.totalAbsoluteAmount - a.totalAbsoluteAmount);
+    }
 
     /**
      * Изчисляване на обобщени статистики за транзакциите
