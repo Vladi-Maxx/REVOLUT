@@ -1,7 +1,6 @@
 /**
  * Основен изглед на финансовото табло
  */
-// Импортираме DateUtils класа за работа с дати
 class DashboardView {
     constructor() {
         // Инициализиране на компонентите
@@ -267,16 +266,8 @@ class DashboardView {
             if (this.filterManager && this.filterManager.preparedChartData && this.filterManager.preparedChartData.length > 0) {
                 chartData = this.filterManager.preparedChartData;
             } else {
-                // Ако нямаме данни от FilterManager, създаваме ги от обработените данни
-                // Използваме правилните ключове на обекта merchantsData
-                chartData = Object.keys(merchantsData).map(merchantName => {
-                    const data = merchantsData[merchantName];
-                    return {
-                        name: String(merchantName), // ИЗРИЧНО превръщаме в стринг
-                        totalAmount: Math.abs(data.totalAmount || 0),
-                        count: data.count || 0
-                    };
-                }).sort((a, b) => b.totalAmount - a.totalAmount); // Сортираме по сума в низходящ ред
+                // Ако нямаме данни от FilterManager, използваме DataUtils.prepareChartData
+                chartData = DataUtils.prepareChartData(merchantsData);
             }
             
             // Графиката вече работи коректно, затова премахваме излишните логове

@@ -144,4 +144,33 @@ class DataUtils {
 
         return uniqueTypes;
     }
+    
+    /**
+     * Преобразуване на данните от groupTransactionsByMerchant в формат за графиката
+     * @param {Array|Object} merchantsData - Групирани данни по търговци
+     * @returns {Array} Форматирани данни за графиката
+     */
+    static prepareChartData(merchantsData) {
+        // Проверка дали merchantsData е масив или обект
+        const isArray = Array.isArray(merchantsData);
+        
+        // Ако е масив, използваме директно елементите
+        // Ако е обект, преобразуваме го в масив от обекти
+        const formattedData = isArray ? merchantsData.map(merchant => {
+            return {
+                name: String(merchant.name || 'Неизвестен'),
+                totalAmount: Math.abs(merchant.totalAmount || 0),
+                count: merchant.count || 0
+            };
+        }) : Object.entries(merchantsData).map(([name, data]) => {
+            return {
+                name: String(name || 'Неизвестен'),
+                totalAmount: Math.abs(data.totalAmount || 0),
+                count: data.count || 0
+            };
+        });
+        
+        // Сортираме по обща сума в низходящ ред
+        return formattedData.sort((a, b) => b.totalAmount - a.totalAmount);
+    }
 }

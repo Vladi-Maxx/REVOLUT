@@ -125,7 +125,7 @@ class CsvImporter {
         // Създаваме идентификатори за всички съществуващи транзакции
         for (const tx of dbTransactions) {
             // Взимаме само необходимите полета
-            let dateStr = this.normalizeDate(tx['Started Date']);
+            let dateStr = DateUtils.normalizeDate(tx['Started Date']);
             let amount = tx['Amount'];
             let type = tx['Type'];
             
@@ -139,7 +139,7 @@ class CsvImporter {
         
         // Проверяваме всяка CSV транзакция дали вече съществува
         for (const tx of csvTransactions) {
-            let dateStr = this.normalizeDate(tx['Started Date']);
+            let dateStr = DateUtils.normalizeDate(tx['Started Date']);
             let amount = tx['Amount'];
             let type = tx['Type'];
             
@@ -191,17 +191,7 @@ class CsvImporter {
         }
     }
     
-    /**
-     * Нормализиране на дати за сравнение
-     * @param {string} dateStr - Дата като стринг
-     * @returns {string} Нормализирана дата
-     */
-    normalizeDate(dateStr) {
-        if (!dateStr) return '';
-        
-        // Премахваме буквата 'T' и часовия пояс (ако съществуват)
-        return dateStr.replace('T', ' ').split('+')[0].trim();
-    }
+    // Методът normalizeDate е преместен в DateUtils класа
 }
 
 // Класът се използва глобално

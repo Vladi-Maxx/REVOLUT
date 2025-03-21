@@ -522,22 +522,8 @@ class FilterManager {
      */
     updateChart(merchantsData) {
         try {
-            // Просто запазваме данните в глобален обект, който е достъпен за ChartComponent
-            // Важно: Преобразуваме данните в подходящ формат за ChartComponent
-            const formattedMerchants = Object.entries(merchantsData)
-                .map(([name, data]) => {
-                    // Експлицитно превръщаме името в стринг
-                    const merchantName = String(name);
-                    return {
-                        name: merchantName,
-                        totalAmount: Math.abs(data.totalAmount || 0),
-                        count: data.count || 0
-                    };
-                })
-                .sort((a, b) => b.totalAmount - a.totalAmount);
-            
-            // Запазваме подготвените данни и оставяме ChartComponent да ги използва
-            this.preparedChartData = formattedMerchants;
+            // Използваме DataUtils.prepareChartData за преобразуване на данните в подходящ формат за ChartComponent
+            this.preparedChartData = DataUtils.prepareChartData(merchantsData);
             
             // Само логваме действието, но не правим директна актуализация на DOM
             // Данните за графиката са подготвени
