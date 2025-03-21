@@ -1,6 +1,7 @@
 /**
  * Основен изглед на финансовото табло
  */
+// Импортираме DateUtils класа за работа с дати
 class DashboardView {
     constructor() {
         // Инициализиране на компонентите
@@ -107,18 +108,16 @@ class DashboardView {
         this.transactionTypeSelect = document.getElementById('transaction-type');
         this.applyFiltersButton = document.getElementById('apply-filters');
         
-        // Задаване на начални стойности за датите
-        const today = new Date();
-        const oneMonthAgo = new Date();
-        oneMonthAgo.setMonth(today.getMonth() - 1);
+        // Задаване на начални стойности за датите с използване на DateUtils
+        const { startDate, endDate } = DateUtils.getLastMonthRange();
         
         // Задаваме стойности на скритите date полета
-        this.startDateInput.value = this.formatDateForDateInput(oneMonthAgo);
-        this.endDateInput.value = this.formatDateForDateInput(today);
+        this.startDateInput.value = DateUtils.formatDateForDateInput(startDate);
+        this.endDateInput.value = DateUtils.formatDateForDateInput(endDate);
         
         // Задаваме стойности на видимите текстови полета
-        this.startDateDisplay.value = this.formatDateForInput(oneMonthAgo);
-        this.endDateDisplay.value = this.formatDateForInput(today);
+        this.startDateDisplay.value = DataUtils.formatDate(startDate);
+        this.endDateDisplay.value = DataUtils.formatDate(endDate);
     }
 
     /**
@@ -231,9 +230,6 @@ class DashboardView {
             // Групираме транзакциите по търговци
             const merchantsData = DataUtils.groupTransactionsByMerchant(filteredTransactions);
             
-            // Изчисляваме статистики
-            const stats = DataUtils.calculateTransactionStats(filteredTransactions);
-            
             // Проверяваме DOM елементите на таблиците
             const merchantsTableBody = document.getElementById('merchants-table-body');
             const transactionsTableBody = document.getElementById('transactions-table-body');
@@ -260,7 +256,7 @@ class DashboardView {
             // Подготовка на данните за сумари компонент
             
             // Обновяваме всички компоненти с филтрираните данни
-            this.summaryComponent.updateSummary(result.stats || stats);
+            this.summaryComponent.updateSummary(result.stats);
             this.merchantsTableComponent.updateTable(merchantsData);
             this.transactionsTableComponent.updateTable(filteredTransactions);
             
