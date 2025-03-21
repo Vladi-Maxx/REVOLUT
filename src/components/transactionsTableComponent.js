@@ -14,11 +14,19 @@ class TransactionsTableComponent {
     updateTable(transactions) {
         if (!transactions || !Array.isArray(transactions)) return;
         
+        console.log('TransactionsTableComponent: Обновяване на таблицата с транзакции', transactions.length);
+        
         // Изчистваме таблицата
         this.tableBodyElement.innerHTML = '';
         
         // Добавяме редове за всяка транзакция
         transactions.forEach(transaction => {
+            // Проверка дали транзакцията има валидно ID
+            if (!transaction.id) {
+                console.warn('TransactionsTableComponent: Транзакция без ID', transaction);
+                return; // Пропускаме транзакции без ID
+            }
+            
             const row = document.createElement('tr');
             
             // Форматираме датите
@@ -40,39 +48,77 @@ class TransactionsTableComponent {
             const amountClass = parseFloat(transaction.Amount) < 0 ? 'amount-negative' : 'amount-positive';
             
             // Създаваме клетките за реда
-            row.innerHTML = `
-                <td>${startDate}</td>
-                <td>${completedDate}</td>
-                <td><span class="transaction-description">${transaction.Description || '-'}</span></td>
-                <td><span class="${amountClass}">${amount}</span></td>
-                <td><span class="currency">${transaction.Currency || '-'}</span></td>
-                <td><span class="transaction-type">${transaction.Type || '-'}</span></td>
-                <td>
-                    <button class="btn btn-delete" data-id="${transaction.id}">
-                        <i class="fa fa-trash"></i> Изтрий
-                    </button>
-                </td>
-            `;
+            // Създаваме структурата на реда
+            const tdStartDate = document.createElement('td');
+            tdStartDate.textContent = startDate;
+            
+            const tdCompletedDate = document.createElement('td');
+            tdCompletedDate.textContent = completedDate;
+            
+            const tdDescription = document.createElement('td');
+            const descSpan = document.createElement('span');
+            descSpan.className = 'transaction-description';
+            descSpan.textContent = transaction.Description || '-';
+            tdDescription.appendChild(descSpan);
+            
+            const tdAmount = document.createElement('td');
+            const amountSpan = document.createElement('span');
+            amountSpan.className = amountClass;
+            amountSpan.textContent = amount;
+            tdAmount.appendChild(amountSpan);
+            
+            const tdCurrency = document.createElement('td');
+            const currencySpan = document.createElement('span');
+            currencySpan.className = 'currency';
+            currencySpan.textContent = transaction.Currency || '-';
+            tdCurrency.appendChild(currencySpan);
+            
+            const tdType = document.createElement('td');
+            const typeSpan = document.createElement('span');
+            typeSpan.className = 'transaction-type';
+            typeSpan.textContent = transaction.Type || '-';
+            tdType.appendChild(typeSpan);
+            
+            const tdActions = document.createElement('td');
+            const deleteButton = document.createElement('button');
+            deleteButton.className = 'btn btn-delete';
+            deleteButton.setAttribute('data-id', transaction.id);
+            
+            const trashIcon = document.createElement('i');
+            trashIcon.className = 'fa fa-trash';
+            deleteButton.appendChild(trashIcon);
+            deleteButton.appendChild(document.createTextNode(' Изтрий'));
+            
+            tdActions.appendChild(deleteButton);
+            
+            // Добавяме всички клетки към реда
+            row.appendChild(tdStartDate);
+            row.appendChild(tdCompletedDate);
+            row.appendChild(tdDescription);
+            row.appendChild(tdAmount);
+            row.appendChild(tdCurrency);
+            row.appendChild(tdType);
+            row.appendChild(tdActions);
             
             // Добавяме реда към таблицата
             this.tableBodyElement.appendChild(row);
             
             // Добавяме слушател за бутона за изтриване
-            const deleteButton = row.querySelector('.btn-delete');
-            if (deleteButton) {
-                deleteButton.addEventListener('click', (event) => {
-                    // Спираме разпространението на събитието, за да не се разпространява нагоре по DOM дървото
+            if (deleteButton && this.deleteCallback) {
+                // Използваме затваряне за да запазим референция към транзакцията
+                const currentTransaction = transaction;
+                const currentId = transaction.id;
+                
+                deleteButton.onclick = (event) => {
+                    // Спираме разпространението на събитието
+                    event.preventDefault();
                     event.stopPropagation();
                     
-                    // Извикваме callback функцията, ако е дефинирана
-                    if (this.deleteCallback && typeof this.deleteCallback === 'function') {
-                        // Взимаме ID на транзакцията от атрибута data-id
-                        const transactionId = deleteButton.getAttribute('data-id');
-                        
-                        // Извикваме функцията за изтриване с ID на транзакцията
-                        this.deleteCallback(transactionId, transaction);
-                    }
-                });
+                    console.log('Кликнат бутон за изтриване с ID:', currentId);
+                    
+                    // Извикваме callback функцията
+                    this.deleteCallback(currentId, currentTransaction);
+                };
             }
         });
     }

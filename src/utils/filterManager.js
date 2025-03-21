@@ -9,8 +9,6 @@ class FilterManager {
      * @param {Object} options.elements - Елементи на интерфейса за филтриране
      * @param {HTMLElement} options.elements.startDateInput - Поле за начална дата
      * @param {HTMLElement} options.elements.endDateInput - Поле за крайна дата
-     * @param {HTMLElement} options.elements.startDateDisplay - Визуализация на начална дата
-     * @param {HTMLElement} options.elements.endDateDisplay - Визуализация на крайна дата
      * @param {HTMLElement} options.elements.currencySelect - Селект за валута
      * @param {HTMLElement} options.elements.transactionTypeSelect - Селект за тип транзакция
      * @param {HTMLElement} options.elements.applyFiltersButton - Бутон за прилагане на филтри
@@ -48,15 +46,18 @@ class FilterManager {
         const oneMonthAgo = new Date();
         oneMonthAgo.setMonth(today.getMonth() - 1);
         
-        // Задаваме стойности на скритите date полета
+        // Задаваме стойности на date полетата
         this.elements.startDateInput.value = this.formatDateForDateInput(oneMonthAgo);
         this.elements.endDateInput.value = this.formatDateForDateInput(today);
         
-        // Задаваме стойности на видимите текстови полета
-        this.syncDateFields();
+        // Добавяме слушатели за полетата за дати
+        this.elements.startDateInput.addEventListener('change', () => {
+            this.applyFilters();
+        });
         
-        // Настройваме слушатели за полетата за дати
-        this.setupDateInputListeners();
+        this.elements.endDateInput.addEventListener('change', () => {
+            this.applyFilters();
+        });
         
         // Добавяме слушател за бутона за прилагане на филтри
         this.elements.applyFiltersButton.addEventListener('click', () => {
@@ -150,88 +151,11 @@ class FilterManager {
 
             // Данните са филтрирани успешно
             
-            // 1. Пряко обновяване на таблицата с транзакции
-            const transactionsTableBody = document.getElementById('transactions-table-body');
-            if (transactionsTableBody) {
-                // Пряко обновяване на таблицата с транзакции
-                
-                // Изчистваме таблицата
-                transactionsTableBody.innerHTML = '';
-                
-                // Добавяме редове за всяка транзакция
-                filteredTransactions.forEach(transaction => {
-                    const row = document.createElement('tr');
-                    
-                    // Форматираме датите
-                    const completedDate = transaction['Completed Date'] 
-                        ? this.dataUtils.formatDate(transaction['Completed Date']) 
-                        : '-';
-                        
-                    const startDate = transaction['Started Date'] 
-                        ? this.dataUtils.formatDate(transaction['Started Date']) 
-                        : '-';
-                    
-                    // Форматираме сумата
-                    const amount = this.dataUtils.formatAmount(
-                        parseFloat(transaction.Amount) || 0, 
-                        transaction.Currency || 'BGN'
-                    );
-                    
-                    // Създаваме клетките за реда
-                    row.innerHTML = `
-                        <td>${startDate}</td>
-                        <td>${completedDate}</td>
-                        <td>${transaction.Description || '-'}</td>
-                        <td>${amount}</td>
-                        <td>${transaction.Currency || '-'}</td>
-                        <td>${transaction.Type || '-'}</td>
-                        <td>
-                            <button class="btn btn-delete" data-id="${transaction.id}">
-                                <i class="fa fa-trash"></i> Изтрий
-                            </button>
-                        </td>
-                    `;
-                    
-                    // Добавяме реда към таблицата
-                    transactionsTableBody.appendChild(row);
-                });
-            }
+            // Не обновяваме таблицата с транзакции тук, тъй като това се прави в DashboardView
+            // Това предотвратява дублиране на обновяването и загуба на слушателите за събития
             
-            // 2. Пряко обновяване на таблицата с търговци
-            const merchantsTableBody = document.getElementById('merchants-table-body');
-            if (merchantsTableBody) {
-                // Обновяваме таблицата с търговци
-                
-                // Изчистваме таблицата
-                merchantsTableBody.innerHTML = '';
-                
-                // Сортираме търговците по обща сума в низходящ ред
-                const sortedMerchants = Object.keys(merchantsData).sort((a, b) => {
-                    return merchantsData[b].totalAmount - merchantsData[a].totalAmount;
-                });
-                
-                // Добавяме редове за всеки търговец
-                sortedMerchants.forEach(merchantName => {
-                    const merchantData = merchantsData[merchantName];
-                    const row = document.createElement('tr');
-                    
-                    // Форматираме сумата
-                    const formattedAmount = this.dataUtils.formatAmount(
-                        merchantData.totalAmount, 
-                        'BGN'
-                    );
-                    
-                    // Създаваме клетките за реда
-                    row.innerHTML = `
-                        <td>${merchantName}</td>
-                        <td>${merchantData.count}</td>
-                        <td>${formattedAmount}</td>
-                    `;
-                    
-                    // Добавяме реда към таблицата
-                    merchantsTableBody.appendChild(row);
-                });
-            }
+            // Не обновяваме таблицата с търговци тук, тъй като това се прави в DashboardView
+            // Това предотвратява дублиране на обновяването и загуба на слушателите за събития
             
             // Премахваме прякото обновяване на DOM тук,
             // защото вече използваме SummaryComponent в DashboardView
@@ -530,151 +454,20 @@ class FilterManager {
         });
     }
     
+
+    
+
+    
+
+    
+
+    
     /**
-     * Синхронизиране на полетата за дати
+     * Празен метод за съвместимост със стария код
+     * @deprecated Този метод е оставен само за съвместимост и ще бъде премахнат в бъдещи версии
      */
     syncDateFields() {
-        // Вземаме датите от скритите полета и ги преобразуваме в обекти Date
-        const startDate = this.elements.startDateInput.value ? new Date(this.elements.startDateInput.value) : null;
-        const endDate = this.elements.endDateInput.value ? new Date(this.elements.endDateInput.value) : null;
-        
-        // Форматираме датите за визуализация (дд.мм.гггг)
-        if (startDate) {
-            const formattedStartDate = `${padZero(startDate.getDate())}.${padZero(startDate.getMonth() + 1)}.${startDate.getFullYear()}`;
-            this.elements.startDateDisplay.value = formattedStartDate;
-        }
-        
-        if (endDate) {
-            const formattedEndDate = `${padZero(endDate.getDate())}.${padZero(endDate.getMonth() + 1)}.${endDate.getFullYear()}`;
-            this.elements.endDateDisplay.value = formattedEndDate;
-        }
-        
-        // Помощна функция за добавяне на водеща нула
-        function padZero(num) {
-            return num.toString().padStart(2, '0');
-        }
-    }
-    
-    /**
-     * Настройване на слушатели за полетата за дати
-     */
-    setupDateInputListeners() {
-        
-        // Проверка дали елементите са налични
-        if (!this.elements.startDateInput || !this.elements.endDateInput || 
-            !this.elements.startDateDisplay || !this.elements.endDateDisplay) {
-            console.error('FilterManager: Липсват някои от елементите за дати!');
-            return;
-        }
-        // Слушатели за скритите date полета
-        this.elements.startDateInput.addEventListener('change', (event) => {
-            if (event.target.value) {
-                const date = new Date(event.target.value);
-                // Обновяваме видимото текстово поле с български формат
-                this.elements.startDateDisplay.value = this.formatDateForDisplay(date);
-            }
-        });
-        
-        this.elements.endDateInput.addEventListener('change', (event) => {
-            if (event.target.value) {
-                const date = new Date(event.target.value);
-                // Обновяваме видимото текстово поле с български формат
-                this.elements.endDateDisplay.value = this.formatDateForDisplay(date);
-            }
-        });
-        
-        // Слушатели за видимите текстови полета
-        this.elements.startDateDisplay.addEventListener('change', (event) => {
-            if (event.target.value) {
-                // Парсваме българския формат
-                const date = this.parseBulgarianDate(event.target.value);
-                if (date && !isNaN(date.getTime())) {
-                    // Обновяваме скритото date поле
-                    this.elements.startDateInput.value = this.formatDateForDateInput(date);
-                }
-            }
-        });
-        
-        this.elements.endDateDisplay.addEventListener('change', (event) => {
-            if (event.target.value) {
-                // Парсваме българския формат
-                const date = this.parseBulgarianDate(event.target.value);
-                if (date && !isNaN(date.getTime())) {
-                    // Обновяваме скритото date поле
-                    this.elements.endDateInput.value = this.formatDateForDateInput(date);
-                }
-            }
-        });
-        
-        // Клик върху текстовите полета отваря календарите
-        this.elements.startDateDisplay.addEventListener('click', () => {
-            console.log('FilterManager: Клик върху startDateDisplay', this.elements.startDateInput);
-            // Директно кликаме върху скрития input[type="date"], вместо да разчитаме на showPicker()
-            try {
-                this.elements.startDateInput.click();
-                // Алтернативен подход, ако кликът не работи
-                if (typeof this.elements.startDateInput.showPicker === 'function') {
-                    this.elements.startDateInput.showPicker();
-                }
-            } catch (error) {
-                console.error('FilterManager: Грешка при опит за отваряне на календара:', error);
-            }
-        });
-        
-        this.elements.endDateDisplay.addEventListener('click', () => {
-            console.log('FilterManager: Клик върху endDateDisplay', this.elements.endDateInput);
-            // Директно кликаме върху скрития input[type="date"], вместо да разчитаме на showPicker()
-            try {
-                this.elements.endDateInput.click();
-                // Алтернативен подход, ако кликът не работи
-                if (typeof this.elements.endDateInput.showPicker === 'function') {
-                    this.elements.endDateInput.showPicker();
-                }
-            } catch (error) {
-                console.error('FilterManager: Грешка при опит за отваряне на календара:', error);
-            }
-        });
-    }
-    
-    /**
-     * Форматиране на дата за визуализация във формат дд.мм.гггг
-     * @param {Date} date - Дата
-     * @returns {string} Форматирана дата
-     */
-    formatDateForDisplay(date) {
-        const year = date.getFullYear();
-        const month = String(date.getMonth() + 1).padStart(2, '0');
-        const day = String(date.getDate()).padStart(2, '0');
-        return `${day}.${month}.${year}`;
-    }
-    
-    /**
-     * Парсване на дата в български формат (дд.мм.гггг)
-     * @param {string} dateString - Дата като стринг във формат дд.мм.гггг
-     * @returns {Date} Обект Дата
-     */
-    parseBulgarianDate(dateString) {
-        if (!dateString) return null;
-        
-        // Регулярен израз за формат дд.мм.гггг
-        const bgRegex = /^(\d{1,2})\.(\d{1,2})\.(\d{4})$/;
-        
-        if (bgRegex.test(dateString)) {
-            const parts = dateString.split('.');
-            const day = parseInt(parts[0], 10);
-            const month = parseInt(parts[1], 10) - 1; // месеците в JavaScript са от 0-11
-            const year = parseInt(parts[2], 10);
-            
-            const date = new Date(year, month, day);
-            
-            // Проверка дали датата е валидна
-            if (!isNaN(date.getTime())) {
-                return date;
-            }
-        }
-        
-        // Ако не е във формат дд.мм.гггг, опитваме стандартния конструктор
-        return new Date(dateString);
+        // Празен метод за съвместимост
     }
     
     /**
@@ -695,15 +488,12 @@ class FilterManager {
      * @param {Date} endDate - Крайна дата
      */
     setDateRange(startDate, endDate) {
-        // Задаваме стойности на скритите date полета
+        // Задаваме стойности на date полетата
         const formattedStartDate = this.formatDateForDateInput(startDate);
         const formattedEndDate = this.formatDateForDateInput(endDate);
         
         this.elements.startDateInput.value = formattedStartDate;
         this.elements.endDateInput.value = formattedEndDate;
-        
-        // Синхронизираме визуалните полета
-        this.syncDateFields();
         
         // Извикваме събитие change за датовите полета, за да се задействат слушателите
         const changeEvent = new Event('change', { bubbles: true });

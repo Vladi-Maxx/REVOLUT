@@ -12,8 +12,6 @@ class DashboardView {
         // Инициализиране на елементите за филтриране
         this.startDateInput = document.getElementById('start-date');
         this.endDateInput = document.getElementById('end-date');
-        this.startDateDisplay = document.getElementById('start-date-display');
-        this.endDateDisplay = document.getElementById('end-date-display');
         this.currencySelect = document.getElementById('currency');
         this.transactionTypeSelect = document.getElementById('transaction-type');
         this.applyFiltersButton = document.getElementById('apply-filters');
@@ -37,8 +35,6 @@ class DashboardView {
             elements: {
                 startDateInput: this.startDateInput,
                 endDateInput: this.endDateInput,
-                startDateDisplay: this.startDateDisplay,
-                endDateDisplay: this.endDateDisplay,
                 currencySelect: this.currencySelect,
                 transactionTypeSelect: this.transactionTypeSelect,
                 applyFiltersButton: this.applyFiltersButton
@@ -251,43 +247,11 @@ class DashboardView {
                 
 
                 
-                // Добавяме редове за всяка транзакция
-                filteredTransactions.forEach(transaction => {
-                    const row = document.createElement('tr');
-                    
-                    // Форматираме датите
-                    const completedDate = transaction['Completed Date'] 
-                        ? DataUtils.formatDate(transaction['Completed Date']) 
-                        : '-';
-                        
-                    const startDate = transaction['Started Date'] 
-                        ? DataUtils.formatDate(transaction['Started Date']) 
-                        : '-';
-                    
-                    // Форматираме сумата
-                    const amount = DataUtils.formatAmount(
-                        parseFloat(transaction.Amount) || 0, 
-                        transaction.Currency || 'BGN'
-                    );
-                    
-                    // Създаваме клетките за реда
-                    row.innerHTML = `
-                        <td>${startDate}</td>
-                        <td>${completedDate}</td>
-                        <td>${transaction.Description || '-'}</td>
-                        <td>${amount}</td>
-                        <td>${transaction.Currency || '-'}</td>
-                        <td>${transaction.Type || '-'}</td>
-                        <td>
-                            <button class="btn btn-delete" data-id="${transaction.id}">
-                                <i class="fa fa-trash"></i> Изтрий
-                            </button>
-                        </td>
-                    `;
-                    
-                    // Добавяме реда към таблицата
-                    transactionsTableBody.appendChild(row);
-                });
+                // Вместо директно да добавяме редове, използваме компонента за транзакции
+                // Това ще гарантира, че слушателите за събития се добавят правилно
+                this.transactionsTableComponent.updateTable(filteredTransactions);
+                
+                // Не е нужно да добавяме редове ръчно, тъй като компонентът вече се грижи за това
                 
                 // Таблицата с транзакции е обновена успешно
             }
@@ -298,6 +262,7 @@ class DashboardView {
             // Обновяваме всички компоненти с филтрираните данни
             this.summaryComponent.updateSummary(result.stats || stats);
             this.merchantsTableComponent.updateTable(merchantsData);
+            this.transactionsTableComponent.updateTable(filteredTransactions);
             
             // Подготовка на данни за графиката
             let chartData = [];
@@ -326,7 +291,6 @@ class DashboardView {
             } else {
                 console.warn('DashboardView: Няма валидни данни за графиката');
             }
-            this.transactionsTableComponent.updateTable(filteredTransactions);
             
         } catch (error) {
             console.error('Грешка при прилагане на филтри:', error);
