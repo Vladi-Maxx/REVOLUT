@@ -79,14 +79,11 @@ class QuickFilterManager {
         this.resetQuickFilterButtons();
         this.lastWeekButton.classList.add('active');
         
-        // Използваме FilterManager за задаване на датов диапазон
-        this.filterManager.setDateRangeLastWeek();
+        // Използваме DateUtils за получаване на датов диапазон
+        const { startDate, endDate } = DateUtils.getLastWeekRange();
         
-        // Директно проверяваме дали датите са актуализирани правилно
-        console.log('QuickFilterManager: Дати след setDateRangeLastWeek', {
-            startDate: this.filterManager.elements.startDateInput.value,
-            endDate: this.filterManager.elements.endDateInput.value
-        });
+        // Задаваме датите във FilterManager
+        this.setDateRange(startDate, endDate);
         
         // Прилагаме филтрите чрез callback
         this.applyFiltersCallback();
@@ -99,8 +96,11 @@ class QuickFilterManager {
         this.resetQuickFilterButtons();
         this.currentMonthButton.classList.add('active');
         
-        // Използваме FilterManager за задаване на датов диапазон
-        this.filterManager.setDateRangeCurrentMonth();
+        // Използваме DateUtils за получаване на датов диапазон
+        const { startDate, endDate } = DateUtils.getCurrentMonthRange();
+        
+        // Задаваме датите във FilterManager
+        this.setDateRange(startDate, endDate);
         
         // Прилагаме филтрите чрез callback
         this.applyFiltersCallback();
@@ -113,8 +113,11 @@ class QuickFilterManager {
         this.resetQuickFilterButtons();
         this.lastMonthButton.classList.add('active');
         
-        // Използваме FilterManager за задаване на датов диапазон
-        this.filterManager.setDateRangeLastMonth();
+        // Използваме DateUtils за получаване на датов диапазон
+        const { startDate, endDate } = DateUtils.getLastMonthRange();
+        
+        // Задаваме датите във FilterManager
+        this.setDateRange(startDate, endDate);
         
         // Прилагаме филтрите чрез callback
         this.applyFiltersCallback();
@@ -127,10 +130,33 @@ class QuickFilterManager {
         this.resetQuickFilterButtons();
         this.currentYearButton.classList.add('active');
         
-        // Използваме FilterManager за задаване на датов диапазон
-        this.filterManager.setDateRangeCurrentYear();
+        // Използваме DateUtils за получаване на датов диапазон
+        const { startDate, endDate } = DateUtils.getCurrentYearRange();
+        
+        // Задаваме датите във FilterManager
+        this.setDateRange(startDate, endDate);
         
         // Прилагаме филтрите чрез callback
         this.applyFiltersCallback();
+    }
+    
+    /**
+     * Задаване на датов диапазон във FilterManager
+     * @param {Date} startDate - Начална дата
+     * @param {Date} endDate - Крайна дата
+     */
+    setDateRange(startDate, endDate) {
+        // Форматираме датите за HTML5 date input
+        const formattedStartDate = DateUtils.formatDateForDateInput(startDate);
+        const formattedEndDate = DateUtils.formatDateForDateInput(endDate);
+        
+        // Задаваме стойности на date полетата във FilterManager
+        this.filterManager.elements.startDateInput.value = formattedStartDate;
+        this.filterManager.elements.endDateInput.value = formattedEndDate;
+        
+        // Извикваме събитие change за датовите полета
+        const changeEvent = new Event('change', { bubbles: true });
+        this.filterManager.elements.startDateInput.dispatchEvent(changeEvent);
+        this.filterManager.elements.endDateInput.dispatchEvent(changeEvent);
     }
 }
