@@ -140,8 +140,6 @@ class DataUtils {
         });
         
         const uniqueTypes = Array.from(types);
-        console.log('DataUtils: Намерени уникални типове:', uniqueTypes);
-
         return uniqueTypes;
     }
     

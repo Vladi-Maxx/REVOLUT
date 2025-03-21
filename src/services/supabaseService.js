@@ -1,15 +1,36 @@
 /**
+ * Глобална инстанция на Supabase клиента
+ */
+let supabaseInstance = null;
+
+/**
+ * Функция за инициализиране на Supabase клиента
+ * @returns {Object} Инстанция на Supabase клиента
+ */
+function initSupabase() {
+    if (supabaseInstance) {
+        return supabaseInstance;
+    }
+    
+    const supabaseUrl = 'https://reuuohlmseejmakhxide.supabase.co';
+    const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJldXVvaGxtc2Vlam1ha2h4aWRlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDIxMDU0MTIsImV4cCI6MjA1NzY4MTQxMn0.L0hipLSxu3mtlMcJ8Tk7OsDmvJzjvfGbYsfNVncPOvo';
+    supabaseInstance = supabase.createClient(supabaseUrl, supabaseKey);
+    
+    return supabaseInstance;
+}
+
+/**
  * Услуга за връзка със Supabase и извличане на данни за транзакции
  */
 class SupabaseService {
     constructor() {
-        // Инициализиране на Supabase клиент с данните от .env файла
-        this.supabaseUrl = 'https://reuuohlmseejmakhxide.supabase.co';
-        this.supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJldXVvaGxtc2Vlam1ha2h4aWRlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDIxMDU0MTIsImV4cCI6MjA1NzY4MTQxMn0.L0hipLSxu3mtlMcJ8Tk7OsDmvJzjvfGbYsfNVncPOvo';
-        this.supabase = supabase.createClient(this.supabaseUrl, this.supabaseKey);
+        // Използваме глобалната инстанция на Supabase клиента
+        this.supabase = initSupabase();
         
-        // Име на таблицата с транзакции
+        // Имена на таблиците
         this.tableName = 'transactions';
+        this.categoriesTable = 'categories';
+        this.merchantCategoriesTable = 'merchant_categories';
     }
 
     /**
@@ -215,6 +236,313 @@ class SupabaseService {
             return { success: true, data };
         } catch (error) {
             console.error('Грешка при изтриване на транзакция:', error);
+            return { success: false, error: error.message };
+        }
+    }
+
+    // ==================== МЕТОДИ ЗА РАБОТА С КАТЕГОРИИ ====================
+
+    /**
+     * Извличане на всички категории
+     * @returns {Promise<Array>} Масив с всички категории
+     */
+    async getAllCategories() {
+        try {
+            const { data, error } = await this.supabase
+                .from(this.categoriesTable)
+                .select('*')
+                .order('name');
+                
+            if (error) {
+                console.error('Грешка при извличане на категории:', error);
+                throw error;
+            }
+            
+            return data || [];
+        } catch (error) {
+            console.error('Грешка при извличане на категории:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Извличане на категория по ID
+     * @param {string} id - ID на категорията
+     * @returns {Promise<Object>} Категория
+     */
+    async getCategoryById(id) {
+        try {
+            if (!id) {
+                throw new Error('Не е предоставен ID на категорията');
+            }
+            
+            const { data, error } = await this.supabase
+                .from(this.categoriesTable)
+                .select('*')
+                .eq('id', id)
+                .single();
+                
+            if (error) {
+                console.error('Грешка при извличане на категория:', error);
+                throw error;
+            }
+            
+            return data;
+        } catch (error) {
+            console.error('Грешка при извличане на категория:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Добавяне на нова категория
+     * @param {Object} category - Обект с данни за категорията
+     * @param {string} category.name - Име на категорията
+     * @param {string} [category.description] - Описание на категорията
+     * @param {string} [category.color] - Цвят на категорията
+     * @returns {Promise<Object>} Резултат от операцията
+     */
+    async addCategory(category) {
+        try {
+            if (!category || !category.name) {
+                return { success: false, error: 'Не е предоставено име на категорията' };
+            }
+            
+            const { data, error } = await this.supabase
+                .from(this.categoriesTable)
+                .insert(category)
+                .select();
+                
+            if (error) {
+                console.error('Грешка при добавяне на категория:', error);
+                return { success: false, error: error.message };
+            }
+            
+            return { success: true, data: data[0] };
+        } catch (error) {
+            console.error('Грешка при добавяне на категория:', error);
+            return { success: false, error: error.message };
+        }
+    }
+
+    /**
+     * Актуализиране на категория
+     * @param {string} id - ID на категорията
+     * @param {Object} updates - Обект с данни за актуализиране
+     * @returns {Promise<Object>} Резултат от операцията
+     */
+    async updateCategory(id, updates) {
+        try {
+            if (!id) {
+                return { success: false, error: 'Не е предоставен ID на категорията' };
+            }
+            
+            if (!updates || Object.keys(updates).length === 0) {
+                return { success: false, error: 'Не са предоставени данни за актуализиране' };
+            }
+            
+            const { data, error } = await this.supabase
+                .from(this.categoriesTable)
+                .update(updates)
+                .eq('id', id)
+                .select();
+                
+            if (error) {
+                console.error('Грешка при актуализиране на категория:', error);
+                return { success: false, error: error.message };
+            }
+            
+            return { success: true, data: data[0] };
+        } catch (error) {
+            console.error('Грешка при актуализиране на категория:', error);
+            return { success: false, error: error.message };
+        }
+    }
+
+    /**
+     * Изтриване на категория по ID
+     * @param {string} id - ID на категорията за изтриване
+     * @returns {Promise<Object>} Резултат от операцията
+     */
+    async deleteCategory(id) {
+        try {
+            if (!id) {
+                return { success: false, error: 'Не е предоставен ID на категорията' };
+            }
+            
+            // Първо изтриваме всички връзки с търговци
+            const { error: merchantCategoriesError } = await this.supabase
+                .from(this.merchantCategoriesTable)
+                .delete()
+                .eq('category_id', id);
+                
+            if (merchantCategoriesError) {
+                console.error('Грешка при изтриване на връзки с търговци:', merchantCategoriesError);
+                return { success: false, error: merchantCategoriesError.message };
+            }
+            
+            // След това изтриваме категорията
+            const { data, error } = await this.supabase
+                .from(this.categoriesTable)
+                .delete()
+                .eq('id', id)
+                .select();
+                
+            if (error) {
+                console.error('Грешка при изтриване на категория:', error);
+                return { success: false, error: error.message };
+            }
+            
+            return { success: true, data: data[0] };
+        } catch (error) {
+            console.error('Грешка при изтриване на категория:', error);
+            return { success: false, error: error.message };
+        }
+    }
+
+    // ==================== МЕТОДИ ЗА РАБОТА С ВРЪЗКИ МЕЖДУ ТЪРГОВЦИ И КАТЕГОРИИ ====================
+
+    /**
+     * Извличане на категория за търговец
+     * @param {string} merchantName - Име на търговеца
+     * @returns {Promise<Object>} Категория на търговеца
+     */
+    async getMerchantCategory(merchantName) {
+        try {
+            if (!merchantName) {
+                throw new Error('Не е предоставено име на търговеца');
+            }
+            
+            const { data, error } = await this.supabase
+                .from(this.merchantCategoriesTable)
+                .select('*, category:category_id(id, name, description, color)')
+                .eq('merchant_name', merchantName)
+                .single();
+                
+            if (error && error.code !== 'PGRST116') { // PGRST116 е код за 'не е намерен запис'
+                console.error('Грешка при извличане на категория за търговец:', error);
+                throw error;
+            }
+            
+            return data ? data.category : null;
+        } catch (error) {
+            console.error('Грешка при извличане на категория за търговец:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Извличане на всички търговци за дадена категория
+     * @param {string} categoryId - ID на категорията
+     * @returns {Promise<Array>} Масив с имена на търговци
+     */
+    async getMerchantsByCategory(categoryId) {
+        try {
+            if (!categoryId) {
+                throw new Error('Не е предоставен ID на категорията');
+            }
+            
+            const { data, error } = await this.supabase
+                .from(this.merchantCategoriesTable)
+                .select('merchant_name')
+                .eq('category_id', categoryId);
+                
+            if (error) {
+                console.error('Грешка при извличане на търговци по категория:', error);
+                throw error;
+            }
+            
+            return data ? data.map(item => item.merchant_name) : [];
+        } catch (error) {
+            console.error('Грешка при извличане на търговци по категория:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Задаване на категория за търговец
+     * @param {string} merchantName - Име на търговеца
+     * @param {string} categoryId - ID на категорията
+     * @returns {Promise<Object>} Резултат от операцията
+     */
+    async setMerchantCategory(merchantName, categoryId) {
+        try {
+            if (!merchantName) {
+                return { success: false, error: 'Не е предоставено име на търговеца' };
+            }
+            
+            if (!categoryId) {
+                return { success: false, error: 'Не е предоставен ID на категорията' };
+            }
+            
+            // Проверяваме дали вече има запис за този търговец
+            const { data: existingData } = await this.supabase
+                .from(this.merchantCategoriesTable)
+                .select('id')
+                .eq('merchant_name', merchantName);
+                
+            // Ако има запис, го актуализираме
+            if (existingData && existingData.length > 0) {
+                const { data, error } = await this.supabase
+                    .from(this.merchantCategoriesTable)
+                    .update({ category_id: categoryId })
+                    .eq('merchant_name', merchantName)
+                    .select();
+                    
+                if (error) {
+                    console.error('Грешка при актуализиране на категория за търговец:', error);
+                    return { success: false, error: error.message };
+                }
+                
+                return { success: true, data: data[0] };
+            } else {
+                // Ако няма запис, създаваме нов
+                const { data, error } = await this.supabase
+                    .from(this.merchantCategoriesTable)
+                    .insert({
+                        merchant_name: merchantName,
+                        category_id: categoryId
+                    })
+                    .select();
+                    
+                if (error) {
+                    console.error('Грешка при добавяне на категория за търговец:', error);
+                    return { success: false, error: error.message };
+                }
+                
+                return { success: true, data: data[0] };
+            }
+        } catch (error) {
+            console.error('Грешка при задаване на категория за търговец:', error);
+            return { success: false, error: error.message };
+        }
+    }
+
+    /**
+     * Премахване на категория от търговец
+     * @param {string} merchantName - Име на търговеца
+     * @returns {Promise<Object>} Резултат от операцията
+     */
+    async removeMerchantCategory(merchantName) {
+        try {
+            if (!merchantName) {
+                return { success: false, error: 'Не е предоставено име на търговеца' };
+            }
+            
+            const { data, error } = await this.supabase
+                .from(this.merchantCategoriesTable)
+                .delete()
+                .eq('merchant_name', merchantName)
+                .select();
+                
+            if (error) {
+                console.error('Грешка при премахване на категория от търговец:', error);
+                return { success: false, error: error.message };
+            }
+            
+            return { success: true, data: data[0] };
+        } catch (error) {
+            console.error('Грешка при премахване на категория от търговец:', error);
             return { success: false, error: error.message };
         }
     }

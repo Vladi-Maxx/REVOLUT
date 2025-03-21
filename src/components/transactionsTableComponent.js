@@ -14,8 +14,6 @@ class TransactionsTableComponent {
     updateTable(transactions) {
         if (!transactions || !Array.isArray(transactions)) return;
         
-        console.log('TransactionsTableComponent: Обновяване на таблицата с транзакции', transactions.length);
-        
         // Изчистваме таблицата
         this.tableBodyElement.innerHTML = '';
         
@@ -23,7 +21,6 @@ class TransactionsTableComponent {
         transactions.forEach(transaction => {
             // Проверка дали транзакцията има валидно ID
             if (!transaction.id) {
-                console.warn('TransactionsTableComponent: Транзакция без ID', transaction);
                 return; // Пропускаме транзакции без ID
             }
             

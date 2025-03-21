@@ -3,6 +3,9 @@
  */
 class DashboardView {
     constructor() {
+        // Инициализиране на SupabaseService
+        this.supabaseService = supabaseService;
+        
         // Инициализиране на компонентите
         this.summaryComponent = new SummaryComponent();
         this.merchantsTableComponent = new MerchantsTableComponent();
@@ -18,7 +21,7 @@ class DashboardView {
         
         // Инициализиране на CSV импортера
         this.csvImporter = new CsvImporter({
-            supabaseService: supabaseService,
+            supabaseService: this.supabaseService,
             csvUtils: CsvUtils,
             notificationCallback: this.showNotification.bind(this),
             onImportSuccess: this.loadData.bind(this)
@@ -39,7 +42,7 @@ class DashboardView {
                 transactionTypeSelect: this.transactionTypeSelect,
                 applyFiltersButton: this.applyFiltersButton
             },
-            supabaseService: supabaseService,
+            supabaseService: this.supabaseService,
             dataUtils: DataUtils,
             notificationCallback: this.showNotification.bind(this),
             onFilterSuccess: (result) => {
@@ -119,6 +122,14 @@ class DashboardView {
         this.endDateDisplay.value = DataUtils.formatDate(endDate);
     }
 
+    /**
+     * Връща инстанцията на SupabaseService
+     * @returns {Object} Инстанция на SupabaseService
+     */
+    getSupabaseService() {
+        return this.supabaseService;
+    }
+    
     /**
      * Добавяне на слушатели за събития
      */
