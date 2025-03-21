@@ -47,8 +47,8 @@ class FilterManager {
         oneMonthAgo.setMonth(today.getMonth() - 1);
         
         // Задаваме стойности на date полетата
-        this.elements.startDateInput.value = this.formatDateForDateInput(oneMonthAgo);
-        this.elements.endDateInput.value = this.formatDateForDateInput(today);
+        this.elements.startDateInput.value = DateUtils.formatDateForDateInput(oneMonthAgo);
+        this.elements.endDateInput.value = DateUtils.formatDateForDateInput(today);
         
         // Добавяме слушатели за полетата за дати
         this.elements.startDateInput.addEventListener('change', () => {
@@ -141,10 +141,10 @@ class FilterManager {
             }
             
             // Групираме транзакциите по търговци за останалите компоненти
-            const merchantsData = this.groupTransactionsByMerchant(filteredTransactions);
+            const merchantsData = this.dataUtils.groupTransactionsByMerchant(filteredTransactions);
             
             // Изчисляваме статистики
-            const stats = this.calculateTransactionStats(filteredTransactions);
+            const stats = this.dataUtils.calculateTransactionStats(filteredTransactions);
             
             // ВАЖНО: Добавяме броя транзакции в двата формата (count за консистентност)
             stats.count = filteredTransactions.length;
@@ -470,17 +470,7 @@ class FilterManager {
         // Празен метод за съвместимост
     }
     
-    /**
-     * Форматиране на дата за HTML5 date input поле (yyyy-mm-dd)
-     * @param {Date} date - Дата
-     * @returns {string} Форматирана дата за HTML5 date input
-     */
-    formatDateForDateInput(date) {
-        const year = date.getFullYear();
-        const month = String(date.getMonth() + 1).padStart(2, '0');
-        const day = String(date.getDate()).padStart(2, '0');
-        return `${year}-${month}-${day}`;
-    }
+    // Методът formatDateForDateInput е преместен в DateUtils класа
     
     /**
      * Задаване на филтър за диапазон от дати
@@ -489,8 +479,8 @@ class FilterManager {
      */
     setDateRange(startDate, endDate) {
         // Задаваме стойности на date полетата
-        const formattedStartDate = this.formatDateForDateInput(startDate);
-        const formattedEndDate = this.formatDateForDateInput(endDate);
+        const formattedStartDate = DateUtils.formatDateForDateInput(startDate);
+        const formattedEndDate = DateUtils.formatDateForDateInput(endDate);
         
         this.elements.startDateInput.value = formattedStartDate;
         this.elements.endDateInput.value = formattedEndDate;
@@ -510,10 +500,6 @@ class FilterManager {
      * Настройване на датите за последната седмица
      */
     setDateRangeLastWeek() {
-        const today = new Date();
-        const oneWeekAgo = new Date();
-        oneWeekAgo.setDate(today.getDate() - 7);
-        
         // Пряко манипулиране на таблицата с транзакции преди да зададем датите
         const transactionsTableBody = document.getElementById('transactions-table-body');
         if (transactionsTableBody) {
@@ -521,65 +507,14 @@ class FilterManager {
             transactionsTableBody.innerHTML = '';
         }
         
+        // Използваме DateUtils за получаване на диапазона от дати
+        const { startDate, endDate } = DateUtils.getLastWeekRange();
+        
         // Задаваме датите
-        this.setDateRange(oneWeekAgo, today);
+        this.setDateRange(startDate, endDate);
     }
     
-    /**
-     * Групиране на транзакции по търговци
-     * @param {Array} transactions - Масив с транзакции
-     * @returns {Object} Обект с групирани данни по търговци
-     */
-    groupTransactionsByMerchant(transactions) {
-        // Създаваме обект за съхранение на групираните данни
-        const merchantsMap = {};
-
-        // Обхождаме всички транзакции
-        transactions.forEach(transaction => {
-            // Използваме Description като име на търговеца
-            const merchantName = transaction.Description || 'Неизвестен';
-            const amount = parseFloat(transaction.Amount) || 0;
-
-            // Ако търговецът не съществува в обекта, го създаваме
-            if (!merchantsMap[merchantName]) {
-                merchantsMap[merchantName] = {
-                    count: 0,
-                    totalAmount: 0,
-                    transactions: []
-                };
-            }
-
-            // Увеличаваме броя транзакции и общата сума
-            merchantsMap[merchantName].count += 1;
-            merchantsMap[merchantName].totalAmount += amount;
-            merchantsMap[merchantName].transactions.push(transaction);
-        });
-
-        return merchantsMap;
-    }
-
-    /**
-     * Изчисляване на обобщени статистики за транзакциите
-     * @param {Array} transactions - Масив с транзакции
-     * @returns {Object} Обект със статистики
-     */
-    calculateTransactionStats(transactions) {
-        // Изчисляваме общата сума
-        const totalAmount = transactions.reduce((sum, transaction) => {
-            return sum + (parseFloat(transaction.Amount) || 0);
-        }, 0);
-        
-        // Изчисляваме средната стойност
-        const averageAmount = transactions.length > 0 
-            ? totalAmount / transactions.length 
-            : 0;
-            
-        return {
-            count: transactions.length,
-            totalAmount: totalAmount,
-            averageAmount: averageAmount
-        };
-    }
+    // Методите groupTransactionsByMerchant и calculateTransactionStats са преместени в DataUtils класа
     
     /**
      * Подготвяне на данните за графиката вместо директно обновяване
@@ -618,30 +553,29 @@ class FilterManager {
      * Настройване на датите за предишния месец
      */
     setDateRangeLastMonth() {
-        const today = new Date();
-        const lastMonth = new Date();
-        lastMonth.setMonth(today.getMonth() - 1);
+        // Използваме DateUtils за получаване на диапазона от дати
+        const { startDate, endDate } = DateUtils.getLastMonthRange();
         
-        this.setDateRange(lastMonth, today);
+        this.setDateRange(startDate, endDate);
     }
     
     /**
      * Настройване на датите за текущия месец
      */
     setDateRangeCurrentMonth() {
-        const today = new Date();
-        const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+        // Използваме DateUtils за получаване на диапазона от дати
+        const { startDate, endDate } = DateUtils.getCurrentMonthRange();
         
-        this.setDateRange(firstDayOfMonth, today);
+        this.setDateRange(startDate, endDate);
     }
     
     /**
      * Настройване на датите за текущата година
      */
     setDateRangeCurrentYear() {
-        const today = new Date();
-        const firstDayOfYear = new Date(today.getFullYear(), 0, 1);
+        // Използваме DateUtils за получаване на диапазона от дати
+        const { startDate, endDate } = DateUtils.getCurrentYearRange();
         
-        this.setDateRange(firstDayOfYear, today);
+        this.setDateRange(startDate, endDate);
     }
 }
