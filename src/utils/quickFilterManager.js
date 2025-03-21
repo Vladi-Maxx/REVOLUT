@@ -83,10 +83,8 @@ class QuickFilterManager {
         const { startDate, endDate } = DateUtils.getLastWeekRange();
         
         // Задаваме датите във FilterManager
-        this.setDateRange(startDate, endDate);
-        
-        // Прилагаме филтрите чрез callback
-        this.applyFiltersCallback();
+        // FilterManager.setDateRange ще извика applyFilters автоматично
+        this.filterManager.setDateRange(startDate, endDate);
     }
     
     /**
@@ -100,10 +98,8 @@ class QuickFilterManager {
         const { startDate, endDate } = DateUtils.getCurrentMonthRange();
         
         // Задаваме датите във FilterManager
-        this.setDateRange(startDate, endDate);
-        
-        // Прилагаме филтрите чрез callback
-        this.applyFiltersCallback();
+        // FilterManager.setDateRange ще извика applyFilters автоматично
+        this.filterManager.setDateRange(startDate, endDate);
     }
     
     /**
@@ -117,10 +113,8 @@ class QuickFilterManager {
         const { startDate, endDate } = DateUtils.getLastMonthRange();
         
         // Задаваме датите във FilterManager
-        this.setDateRange(startDate, endDate);
-        
-        // Прилагаме филтрите чрез callback
-        this.applyFiltersCallback();
+        // FilterManager.setDateRange ще извика applyFilters автоматично
+        this.filterManager.setDateRange(startDate, endDate);
     }
     
     /**
@@ -134,29 +128,9 @@ class QuickFilterManager {
         const { startDate, endDate } = DateUtils.getCurrentYearRange();
         
         // Задаваме датите във FilterManager
-        this.setDateRange(startDate, endDate);
-        
-        // Прилагаме филтрите чрез callback
-        this.applyFiltersCallback();
+        // FilterManager.setDateRange ще извика applyFilters автоматично
+        this.filterManager.setDateRange(startDate, endDate);
     }
     
-    /**
-     * Задаване на датов диапазон във FilterManager
-     * @param {Date} startDate - Начална дата
-     * @param {Date} endDate - Крайна дата
-     */
-    setDateRange(startDate, endDate) {
-        // Форматираме датите за HTML5 date input
-        const formattedStartDate = DateUtils.formatDateForDateInput(startDate);
-        const formattedEndDate = DateUtils.formatDateForDateInput(endDate);
-        
-        // Задаваме стойности на date полетата във FilterManager
-        this.filterManager.elements.startDateInput.value = formattedStartDate;
-        this.filterManager.elements.endDateInput.value = formattedEndDate;
-        
-        // Извикваме събитие change за датовите полета
-        const changeEvent = new Event('change', { bubbles: true });
-        this.filterManager.elements.startDateInput.dispatchEvent(changeEvent);
-        this.filterManager.elements.endDateInput.dispatchEvent(changeEvent);
-    }
+    // Методът setDateRange е премахнат и вместо него се използва this.filterManager.setDateRange
 }
