@@ -183,23 +183,6 @@ class CategoryChartComponent {
             
             if (!this.chartCanvas) {
                 console.error('%c[CategoryChartComponent] Не може да се намери канваса за графиката на категории', 'background: #e74c3c; color: white; padding: 2px 5px; border-radius: 3px;');
-                
-                // Проверяваме дали секцията съществува
-                const section = document.querySelector('.categories-chart-section');
-                if (section) {
-                    console.log('%c[CategoryChartComponent] Секцията за графиката на категории съществува, опитваме да създадем канвас', 'background: #2ecc71; color: white; padding: 2px 5px; border-radius: 3px;');
-                    
-                    // Проверяваме дали има контейнер за графиката
-                    const chartContainer = section.querySelector('.chart-container');
-                    if (chartContainer) {
-                        console.log('%c[CategoryChartComponent] Контейнерът за графиката съществува', 'background: #2ecc71; color: white; padding: 2px 5px; border-radius: 3px;');
-                    } else {
-                        console.error('%c[CategoryChartComponent] Контейнерът за графиката не съществува', 'background: #e74c3c; color: white; padding: 2px 5px; border-radius: 3px;');
-                    }
-                } else {
-                    console.error('%c[CategoryChartComponent] Секцията за графиката на категории не съществува', 'background: #e74c3c; color: white; padding: 2px 5px; border-radius: 3px;');
-                }
-                
                 return;
             }
         }
@@ -207,6 +190,7 @@ class CategoryChartComponent {
         // Ако графиката вече съществува, я унищожаваме
         if (this.chart) {
             this.chart.destroy();
+            this.chart = null;
         }
         
         // Инициализираме нова графика с новите данни

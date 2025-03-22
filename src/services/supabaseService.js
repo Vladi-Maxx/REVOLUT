@@ -631,6 +631,36 @@ class SupabaseService {
     }
     
     /**
+     * Извличане на мапинг между търговец и категория
+     * @returns {Promise<Object>} Обект с ключ - име на търговец и стойност - ID на категория
+     */
+    async getMerchantCategoryMapping() {
+        try {
+            const { data, error } = await this.supabase
+                .from(this.merchantCategoriesTable)
+                .select('merchant_name, category_id');
+                
+            if (error) {
+                console.error('Грешка при извличане на мапинга между търговци и категории:', error);
+                throw error;
+            }
+            
+            // Създаваме обект с ключ - име на търговец и стойност - ID на категория
+            const mapping = {};
+            if (data) {
+                data.forEach(item => {
+                    mapping[item.merchant_name] = item.category_id;
+                });
+            }
+            
+            return mapping;
+        } catch (error) {
+            console.error('Грешка при извличане на мапинга:', error);
+            return {};
+        }
+    }
+    
+    /**
      * Изчисляване на статистики за категория
      * @param {string} categoryId - ID на категорията
      * @returns {Promise<Object>} Обект със статистики за категорията

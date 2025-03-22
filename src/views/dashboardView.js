@@ -89,6 +89,15 @@ class DashboardView {
                         // Вземаме всички категории
                         const categories = await this.supabaseService.getAllCategories();
                         
+                        // Вземаме мапинга между търговци и категории
+                        const merchantCategoryMapping = await this.supabaseService.getMerchantCategoryMapping();
+                        
+                        // Добавяме category_id към всяка транзакция
+                        result.filteredTransactions.forEach(transaction => {
+                            const merchantName = transaction.Description;
+                            transaction.category_id = merchantCategoryMapping[merchantName] || null;
+                        });
+                        
                         // Подготовка на данни за графиката на категории
                         const categoryData = DataUtils.groupTransactionsByCategory(result.filteredTransactions, categories);
                         
@@ -318,6 +327,16 @@ class DashboardView {
             console.log('%c[DashboardView] Извличане на категории', 'background: #9b59b6; color: white; padding: 2px 5px; border-radius: 3px;');
             const categories = await this.supabaseService.getAllCategories();
             console.log('%c[DashboardView] Получени категории:', 'background: #9b59b6; color: white; padding: 2px 5px; border-radius: 3px;', categories);
+            
+            // Вземаме мапинга между търговци и категории
+            console.log('%c[DashboardView] Извличане на мапинг между търговци и категории', 'background: #9b59b6; color: white; padding: 2px 5px; border-radius: 3px;');
+            const merchantCategoryMapping = await this.supabaseService.getMerchantCategoryMapping();
+            
+            // Добавяме category_id към всяка транзакция
+            filteredTransactions.forEach(transaction => {
+                const merchantName = transaction.Description;
+                transaction.category_id = merchantCategoryMapping[merchantName] || null;
+            });
             
             // Подготовка на данни за графиката на категории
             console.log('%c[DashboardView] Групиране на транзакции по категории', 'background: #e74c3c; color: white; padding: 2px 5px; border-radius: 3px;', {

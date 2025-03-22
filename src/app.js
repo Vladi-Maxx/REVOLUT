@@ -42,10 +42,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         console.log('%c[App] Проверка и корекция на HTML структурата за графиката на категории', 'background: #3498db; color: white; padding: 2px 5px; border-radius: 3px;');
         
         // Проверяваме дали секцията за графиката на категории съществува
-        let categoriesChartSection = document.querySelector('.categories-chart-section');
+        let categoriesSection = document.querySelector('.categories-section');
         
         // Ако секцията не съществува, я създаваме
-        if (!categoriesChartSection) {
+        if (!categoriesSection) {
             console.warn('%c[App] Секцията за графиката на категории не съществува, създаваме я', 'background: #f39c12; color: white; padding: 2px 5px; border-radius: 3px;');
             
             // Намираме секцията с графиката за търговци, за да добавим секцията за категории след нея
@@ -54,17 +54,17 @@ document.addEventListener('DOMContentLoaded', async () => {
                 console.log('%c[App] Намерена е секцията за търговци, добавяме секцията за категории след нея', 'background: #2ecc71; color: white; padding: 2px 5px; border-radius: 3px;');
                 
                 // Създаваме секцията за графиката на категории
-                categoriesChartSection = document.createElement('section');
-                categoriesChartSection.className = 'categories-chart-section';
-                categoriesChartSection.innerHTML = `
+                categoriesSection = document.createElement('section');
+                categoriesSection.className = 'categories-section';
+                categoriesSection.innerHTML = `
                     <h2>Разпределение по категории</h2>
-                    <div class="chart-container">
+                    <div class="categories-chart-container">
                         <canvas id="categories-chart"></canvas>
                     </div>
                 `;
                 
                 // Добавяме секцията за категории след секцията за търговци
-                merchantsSection.insertAdjacentElement('afterend', categoriesChartSection);
+                merchantsSection.insertAdjacentElement('afterend', categoriesSection);
                 
                 console.log('%c[App] Секцията за графиката на категории е създадена и добавена', 'background: #2ecc71; color: white; padding: 2px 5px; border-radius: 3px;');
             } else {
@@ -74,17 +74,17 @@ document.addEventListener('DOMContentLoaded', async () => {
             console.log('%c[App] Секцията за графиката на категории съществува', 'background: #2ecc71; color: white; padding: 2px 5px; border-radius: 3px;');
             
             // Проверяваме дали има контейнер за графиката
-            const chartContainer = categoriesChartSection.querySelector('.chart-container');
+            const chartContainer = categoriesSection.querySelector('.categories-chart-container');
             if (!chartContainer) {
                 console.warn('%c[App] Контейнерът за графиката на категории не съществува, създаваме го', 'background: #f39c12; color: white; padding: 2px 5px; border-radius: 3px;');
                 
                 // Създаваме контейнер за графиката
                 const newChartContainer = document.createElement('div');
-                newChartContainer.className = 'chart-container';
+                newChartContainer.className = 'categories-chart-container';
                 newChartContainer.innerHTML = '<canvas id="categories-chart"></canvas>';
                 
                 // Добавяме контейнера в секцията
-                categoriesChartSection.appendChild(newChartContainer);
+                categoriesSection.appendChild(newChartContainer);
                 
                 console.log('%c[App] Контейнерът за графиката на категории е създаден и добавен', 'background: #2ecc71; color: white; padding: 2px 5px; border-radius: 3px;');
             } else {
