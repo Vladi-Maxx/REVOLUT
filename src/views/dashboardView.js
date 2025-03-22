@@ -7,9 +7,21 @@ class DashboardView {
         this.supabaseService = supabaseService;
         
         // Инициализиране на компонентите
+        console.log('%c[DashboardView] Инициализиране на компоненти', 'background: #3498db; color: white; padding: 2px 5px; border-radius: 3px;');
+        
+        // Проверка на HTML елементите за графиките
+        const merchantsChartElement = document.getElementById('merchants-chart');
+        const categoriesChartElement = document.getElementById('categories-chart');
+        
+        console.log('%c[DashboardView] HTML елементи за графики:', 'background: #3498db; color: white; padding: 2px 5px; border-radius: 3px;', {
+            'merchants-chart': merchantsChartElement,
+            'categories-chart': categoriesChartElement
+        });
+        
         this.summaryComponent = new SummaryComponent();
         this.merchantsTableComponent = new MerchantsTableComponent();
         this.chartComponent = new ChartComponent();
+        this.categoryChartComponent = new CategoryChartComponent();
         this.transactionsTableComponent = new TransactionsTableComponent();
         
         // Инициализиране на елементите за филтриране
@@ -45,7 +57,7 @@ class DashboardView {
             supabaseService: this.supabaseService,
             dataUtils: DataUtils,
             notificationCallback: this.showNotification.bind(this),
-            onFilterSuccess: (result) => {
+            onFilterSuccess: async (result) => {
                 // Обновяваме графиката и summary панелите, без да извикваме отново applyFilters
                 if (result && result.success) {
                     // 1. Обновяваме summary панелите
@@ -59,7 +71,7 @@ class DashboardView {
                         this.merchantsTableComponent.updateTable(merchantsData);
                     }
                     
-                    // 3. Подготовка на данни за графиката
+                    // 3. Подготовка на данни за графиката на търговци
                     let chartData = [];
                     
                     // Използваме подготвените данни от FilterManager
@@ -67,9 +79,23 @@ class DashboardView {
                         chartData = result.merchantsData;
                     }
                     
-                    // Обновяваме графиката
+                    // Обновяваме графиката за търговци
                     if (chartData && chartData.length > 0) {
                         this.chartComponent.updateChart(chartData);
+                    }
+                    
+                    // 4. Обновяваме графиката за категории
+                    if (result.filteredTransactions && result.filteredTransactions.length > 0) {
+                        // Вземаме всички категории
+                        const categories = await this.supabaseService.getAllCategories();
+                        
+                        // Подготовка на данни за графиката на категории
+                        const categoryData = DataUtils.groupTransactionsByCategory(result.filteredTransactions, categories);
+                        
+                        // Обновяваме графиката за категории
+                        if (categoryData && categoryData.length > 0) {
+                            this.categoryChartComponent.updateChart(categoryData);
+                        }
                     }
                 }
             }
@@ -270,7 +296,7 @@ class DashboardView {
             this.merchantsTableComponent.updateTable(merchantsData);
             this.transactionsTableComponent.updateTable(filteredTransactions);
             
-            // Подготовка на данни за графиката
+            // Подготовка на данни за графиката на търговци
             let chartData = [];
             
             // Използваме подготвените данни от FilterManager, ако са налични
@@ -281,17 +307,36 @@ class DashboardView {
                 chartData = DataUtils.prepareChartData(merchantsData);
             }
             
-            // Графиката вече работи коректно, затова премахваме излишните логове
-            
-            // Обновяваме графиката
+            // Обновяваме графиката за търговци
             if (chartData && chartData.length > 0) {
                 this.chartComponent.updateChart(chartData);
             } else {
-                console.warn('DashboardView: Няма валидни данни за графиката');
+                console.warn('DashboardView: Няма валидни данни за графиката на търговци');
+            }
+            
+            // Вземаме всички категории
+            console.log('%c[DashboardView] Извличане на категории', 'background: #9b59b6; color: white; padding: 2px 5px; border-radius: 3px;');
+            const categories = await this.supabaseService.getAllCategories();
+            console.log('%c[DashboardView] Получени категории:', 'background: #9b59b6; color: white; padding: 2px 5px; border-radius: 3px;', categories);
+            
+            // Подготовка на данни за графиката на категории
+            console.log('%c[DashboardView] Групиране на транзакции по категории', 'background: #e74c3c; color: white; padding: 2px 5px; border-radius: 3px;', {
+                'Брой филтрирани транзакции': filteredTransactions.length,
+                'Брой категории': categories.length
+            });
+            const categoryData = DataUtils.groupTransactionsByCategory(filteredTransactions, categories);
+            console.log('%c[DashboardView] Резултат от групирането по категории:', 'background: #e74c3c; color: white; padding: 2px 5px; border-radius: 3px;', categoryData);
+            
+            // Обновяваме графиката за категории
+            if (categoryData && categoryData.length > 0) {
+                console.log('%c[DashboardView] Обновяване на графиката за категории', 'background: #2ecc71; color: white; padding: 2px 5px; border-radius: 3px;');
+                this.categoryChartComponent.updateChart(categoryData);
+            } else {
+                console.warn('%c[DashboardView] Няма валидни данни за графиката на категории', 'background: #f39c12; color: white; padding: 2px 5px; border-radius: 3px;');
             }
             
         } catch (error) {
-            console.error('Грешка при прилагане на филтри:', error);
+            console.error('%c[DashboardView] Грешка при прилагане на филтри:', 'background: #c0392b; color: white; padding: 2px 5px; border-radius: 3px;', error);
             this.showErrorMessage('Възникна грешка при филтриране на данните.');
         }
     }

@@ -217,4 +217,99 @@ class DataUtils {
         // Сортираме по обща сума в низходящ ред
         return formattedData.sort((a, b) => b.totalAmount - a.totalAmount);
     }
+    
+    /**
+     * Групиране на транзакции по категория
+     * @param {Array} transactions - Масив с транзакции
+     * @param {Array} categories - Масив с категории
+     * @returns {Array} Масив с групирани данни по категории
+     */
+    static groupTransactionsByCategory(transactions, categories) {
+        // Създаваме обект за съхранение на групираните данни
+        const categoriesMap = {};
+        
+        // Създаваме map за бързо търсене на категории по ID
+        const categoriesById = {};
+        if (categories && Array.isArray(categories)) {
+            categories.forEach(category => {
+                categoriesById[category.id] = category;
+            });
+        }
+        
+        // Добавяме всички категории в мапа, за да гарантираме, че всички ще се покажат
+        if (categories && Array.isArray(categories)) {
+            categories.forEach(category => {
+                categoriesMap[category.name] = {
+                    name: category.name,
+                    color: category.color || '#3498db',
+                    count: 0,
+                    totalAmount: 0,
+                    totalAbsoluteAmount: 0,
+                    averageAmount: 0,
+                    transactions: []
+                };
+            });
+        }
+        
+        // Добавяме категория за некатегоризирани транзакции
+        categoriesMap['Некатегоризирани'] = {
+            name: 'Некатегоризирани',
+            color: '#CCCCCC',
+            count: 0,
+            totalAmount: 0,
+            totalAbsoluteAmount: 0,
+            averageAmount: 0,
+            transactions: []
+        };
+        
+        // Обхождаме всички транзакции
+        transactions.forEach(transaction => {
+            // Проверяваме дали транзакцията има категория
+            const categoryId = transaction.category_id;
+            const amount = parseFloat(transaction.Amount) || 0;
+            const absAmount = Math.abs(amount);
+            
+            // Ако няма категория, добавяме към 'Некатегоризирани'
+            let categoryName = 'Некатегоризирани';
+            
+            // Ако има категория и тя съществува в масива с категории, използваме нейните данни
+            if (categoryId && categoriesById[categoryId]) {
+                categoryName = categoriesById[categoryId].name;
+            }
+            
+            // Увеличаваме броя транзакции и сумите
+            if (categoriesMap[categoryName]) {
+                categoriesMap[categoryName].count += 1;
+                categoriesMap[categoryName].totalAmount += amount;
+                categoriesMap[categoryName].totalAbsoluteAmount += absAmount;
+                categoriesMap[categoryName].transactions.push(transaction);
+            } else {
+                // Ако по някаква причина категорията не е в мапа, добавяме я
+                categoriesMap[categoryName] = {
+                    name: categoryName,
+                    color: categoryId && categoriesById[categoryId] ? categoriesById[categoryId].color : '#3498db',
+                    count: 1,
+                    totalAmount: amount,
+                    totalAbsoluteAmount: absAmount,
+                    averageAmount: amount,
+                    transactions: [transaction]
+                };
+            }
+        });
+        
+        // Преобразуваме обекта в масив и изчисляваме средната сума
+        const categoriesArray = Object.values(categoriesMap).map(category => {
+            if (category.count > 0) {
+                category.averageAmount = category.totalAmount / category.count;
+                category.averageAbsoluteAmount = category.totalAbsoluteAmount / category.count;
+            }
+            return category;
+        });
+        
+        // Филтрираме категориите без транзакции, ако не са в текущия филтър
+        const filteredCategories = categoriesArray.filter(category => category.count > 0);
+        
+        // Сортираме по абсолютна стойност на общата сума в низходящ ред
+        return filteredCategories.sort((a, b) => b.totalAbsoluteAmount - a.totalAbsoluteAmount);
+    }
 }

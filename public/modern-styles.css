@@ -284,6 +284,36 @@ h1, h2, h3 {
     min-height: 400px;
 }
 
+/* Секция с графика за категории */
+.categories-chart-section {
+    background-color: white;
+    border-radius: 12px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05), 0 1px 3px rgba(0, 0, 0, 0.1);
+    padding: 16px;
+    margin-bottom: 24px;
+    display: block !important; /* Принудително показване */
+    visibility: visible !important; /* Принудителна видимост */
+    opacity: 1 !important; /* Принудителна непрозрачност */
+    min-height: 400px; /* Минимална височина */
+    width: 100%; /* Пълна ширина */
+    position: relative; /* Позициониране */
+    z-index: 1; /* Подсигуряване, че е над други елементи */
+}
+
+.categories-chart-section h2 {
+    margin-top: 0;
+    margin-bottom: 16px;
+    font-size: 1.25rem;
+    color: #1e293b;
+}
+
+/* Стилове за канваса на графиката за категории */
+#categories-chart {
+    width: 100% !important;
+    height: 400px !important;
+    display: block !important;
+}
+
 /* Таблици */
 table {
     width: 100%;

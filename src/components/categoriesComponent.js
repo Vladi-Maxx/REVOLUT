@@ -50,15 +50,15 @@ class CategoriesComponent {
             <!-- Модален прозорец за добавяне/редактиране на категория -->
             <div class="modal" id="category-modal">
                 <div class="modal-content category-modal-content">
-                    <span class="close-modal">&times;</span>
-                    <h3 id="modal-title">Добавяне на категория</h3>
+                    <div class="modal-header">
+                        <h3 id="modal-title"><i class="fas fa-tag"></i> Добавяне на категория</h3>
+                        <span class="close-modal">&times;</span>
+                    </div>
                     
                     <form id="category-form">
-                        <div class="category-form-header">
-                            <div class="form-actions">
-                                <button type="submit" class="btn btn-primary">Запази</button>
-                                <button type="button" class="btn btn-secondary" id="cancel-category">Отказ</button>
-                            </div>
+                        <div class="form-actions">
+                            <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Запази</button>
+                            <button type="button" class="btn btn-secondary" id="cancel-category">Отказ</button>
                         </div>
                         
                         <div class="category-form-content">
@@ -79,10 +79,12 @@ class CategoriesComponent {
                             <!-- Секция за търговци в категорията -->
                             <div class="form-group merchants-section">
                                 <div class="merchants-header">
-                                    <h4>Търговци в категорията</h4>
-                                    <button type="button" class="btn btn-add-merchants" id="add-merchants-btn">Добави търговци</button>
+                                    <h4><i class="fas fa-store"></i> Търговци в категорията</h4>
+                                    <button type="button" class="btn btn-primary btn-add-merchants" id="add-merchants-btn">
+                                        <i class="fas fa-plus-circle"></i> Добави търговци
+                                    </button>
                                 </div>
-                                <div class="merchants-container">
+                                <div class="merchants-container" id="merchants-container">
                                     <div id="category-merchants-list" class="category-merchants-list">
                                         <!-- Тук ще се показват асоциираните търговци -->
                                         <div class="no-merchants-message">Няма добавени търговци в тази категория</div>
@@ -97,8 +99,10 @@ class CategoriesComponent {
             <!-- Модален прозорец за избор на търговци -->
             <div class="modal" id="merchants-modal">
                 <div class="modal-content merchant-modal-content">
-                    <span class="close-modal" id="close-merchants-modal">&times;</span>
-                    <h3>Избор на търговци за категория</h3>
+                    <div class="modal-header">
+                        <h3><i class="fas fa-store-alt"></i> Избор на търговци за категория</h3>
+                        <span class="close-modal" id="close-merchants-modal">&times;</span>
+                    </div>
                     
                     <div class="merchants-header">
                         <div class="merchants-search-container">
@@ -106,13 +110,19 @@ class CategoriesComponent {
                         </div>
                         
                         <div class="merchants-selection-actions">
-                            <button type="button" class="btn btn-select-all" id="select-all-merchants">Избери всички</button>
-                            <button type="button" class="btn btn-select-none" id="select-none-merchants">Избери никой</button>
+                            <button type="button" class="btn btn-select-all" id="select-all-merchants">
+                                <i class="fas fa-check-square"></i> Избери всички
+                            </button>
+                            <button type="button" class="btn btn-select-none" id="select-none-merchants">
+                                <i class="fas fa-square"></i> Избери никой
+                            </button>
                         </div>
                     </div>
                     
                     <div class="merchants-modal-actions top-actions">
-                        <button type="button" class="btn btn-primary" id="add-selected-merchants">Добави избраните</button>
+                        <button type="button" class="btn btn-primary" id="add-selected-merchants">
+                            <i class="fas fa-plus-circle"></i> Добави избраните
+                        </button>
                         <button type="button" class="btn btn-secondary" id="cancel-merchants-selection">Отказ</button>
                     </div>
                     
@@ -124,7 +134,9 @@ class CategoriesComponent {
                     </div>
                     
                     <div class="merchants-modal-actions bottom-actions">
-                        <button type="button" class="btn btn-primary" id="add-selected-merchants-bottom">Добави избраните</button>
+                        <button type="button" class="btn btn-primary" id="add-selected-merchants-bottom">
+                            <i class="fas fa-plus-circle"></i> Добави избраните
+                        </button>
                         <button type="button" class="btn btn-secondary" id="cancel-merchants-selection-bottom">Отказ</button>
                     </div>
                 </div>
@@ -259,15 +271,27 @@ class CategoriesComponent {
         categories.forEach(category => {
             const categoryElement = document.createElement('div');
             categoryElement.className = 'category-item';
+            
+            // Добавяме броя на търговци в категорията
+            const merchantCount = category.merchantCount || 0;
+            const merchantCountText = merchantCount > 0 
+                ? `<span class="merchant-count">${merchantCount} търговци</span>` 
+                : '<span class="merchant-count empty">Няма търговци</span>';
+            
             categoryElement.innerHTML = `
                 <div class="category-color" style="background-color: ${category.color || '#3498db'}"></div>
                 <div class="category-info">
                     <h3>${category.name}</h3>
                     <p>${category.description || 'Няма описание'}</p>
+                    ${merchantCountText}
                 </div>
                 <div class="category-actions">
-                    <button class="btn btn-edit" data-id="${category.id}">Редактирай</button>
-                    <button class="btn btn-delete" data-id="${category.id}">Изтрий</button>
+                    <button class="btn btn-edit" data-id="${category.id}" title="Редактирай">
+                        <i class="fas fa-pencil-alt"></i>
+                    </button>
+                    <button class="btn btn-delete" data-id="${category.id}" title="Изтрий">
+                        <i class="fas fa-trash-alt"></i>
+                    </button>
                 </div>
             `;
             
@@ -414,28 +438,67 @@ class CategoriesComponent {
         // Изчистваме списъка
         this.merchantsList.innerHTML = '';
         
+        // Сортираме търговците по абсолютна стойност на сумата
+        const sortedMerchants = [...merchants].sort((a, b) => 
+            Math.abs(b.totalAmount || 0) - Math.abs(a.totalAmount || 0));
+        
         // Създаваме HTML за всеки търговец
-        merchants.forEach(merchant => {
+        sortedMerchants.forEach(merchant => {
             const merchantElement = document.createElement('div');
             merchantElement.className = 'merchant-item';
             
             // Форматираме сумата и броя транзакции
-            const formattedAmount = DataUtils.formatAmount(Math.abs(merchant.totalAmount));
-            const transactionsCount = merchant.count;
+            const formattedAmount = DataUtils.formatAmount(Math.abs(merchant.totalAmount || 0));
+            const transactionsCount = merchant.count || 0;
             
             merchantElement.innerHTML = `
                 <div class="merchant-checkbox-container">
-                    <input type="checkbox" class="merchant-checkbox" data-merchant="${merchant.name}">
+                    <input type="checkbox" class="merchant-checkbox" data-merchant="${merchant.name}" id="merchant-${merchant.name.replace(/\s+/g, '-')}">
+                    <label for="merchant-${merchant.name.replace(/\s+/g, '-')}" class="merchant-checkbox-label"></label>
                 </div>
                 <div class="merchant-info">
                     <div class="merchant-name">${merchant.name}</div>
-                    <div class="merchant-stats">${formattedAmount} (${transactionsCount})</div>
+                    <div class="merchant-stats">${formattedAmount} (${transactionsCount} транз.)</div>
                 </div>
             `;
             
             // Добавяме търговеца в списъка
             this.merchantsList.appendChild(merchantElement);
+            
+            // Добавяме слушател за кликване върху целия ред
+            merchantElement.addEventListener('click', (e) => {
+                // Ако не е кликнат чекбокса, тогава превключваме състоянието му
+                if (e.target.type !== 'checkbox') {
+                    const checkbox = merchantElement.querySelector('.merchant-checkbox');
+                    checkbox.checked = !checkbox.checked;
+                    
+                    // Добавяме или премахваме клас за избраност
+                    if (checkbox.checked) {
+                        merchantElement.classList.add('selected');
+                    } else {
+                        merchantElement.classList.remove('selected');
+                    }
+                }
+            });
+            
+            // Добавяме слушател за промяна на чекбокса
+            const checkbox = merchantElement.querySelector('.merchant-checkbox');
+            checkbox.addEventListener('change', () => {
+                if (checkbox.checked) {
+                    merchantElement.classList.add('selected');
+                } else {
+                    merchantElement.classList.remove('selected');
+                }
+            });
         });
+        
+        // Проверяваме дали има нужда от скролване
+        setTimeout(() => {
+            const container = document.querySelector('.merchants-list-container');
+            if (container && container.scrollHeight > container.clientHeight) {
+                container.classList.add('scrollable');
+            }
+        }, 100);
     }
     
     /**
@@ -523,41 +586,66 @@ class CategoriesComponent {
     renderCategoryMerchants() {
         // Проверяваме дали има търговци
         if (!this.currentCategoryMerchants || this.currentCategoryMerchants.length === 0) {
-            this.categoryMerchantsList.innerHTML = '<div class="no-merchants-message">Няма добавени търговци в тази категория</div>';
+            this.categoryMerchantsList.innerHTML = `
+                <div class="empty-merchants-message">
+                    <i class="fas fa-store-alt"></i>
+                    <p>Няма добавени търговци в тази категория</p>
+                </div>`;
             return;
         }
         
         // Сортираме търговците по абсолютна стойност на сумата
         const sortedMerchants = [...this.currentCategoryMerchants].sort((a, b) => 
-            Math.abs(b.totalAmount) - Math.abs(a.totalAmount));
+            Math.abs(b.totalAmount || 0) - Math.abs(a.totalAmount || 0));
         
         // Изчистваме списъка
         this.categoryMerchantsList.innerHTML = '';
         
+        // Вземаме цвета на категорията за визуален индикатор
+        const categoryColor = this.categoryColorInput.value || '#3498db';
+        
         // Създаваме HTML за всеки търговец
         sortedMerchants.forEach(merchant => {
             const merchantElement = document.createElement('div');
-            merchantElement.className = 'category-merchant-item';
+            merchantElement.className = 'merchant-item';
             
             // Форматираме сумата и броя транзакции
-            const formattedAmount = DataUtils.formatAmount(Math.abs(merchant.totalAmount));
-            const transactionsCount = merchant.count;
+            const formattedAmount = DataUtils.formatAmount(Math.abs(merchant.totalAmount || 0));
+            const transactionsCount = merchant.count || 0;
             
             merchantElement.innerHTML = `
-                <div class="category-merchant-info">
-                    <div class="category-merchant-name">${merchant.name}</div>
-                    <div class="category-merchant-stats">${formattedAmount} (${transactionsCount})</div>
+                <div class="merchant-color-indicator" style="background-color: ${categoryColor}"></div>
+                <div class="merchant-info">
+                    <div class="merchant-name">${merchant.name}</div>
+                    <div class="merchant-stats">
+                        <span class="amount">${formattedAmount}</span>
+                        <span class="transactions-count">${transactionsCount} транз.</span>
+                    </div>
                 </div>
-                <button type="button" class="btn btn-remove-merchant" data-merchant="${merchant.name}">Премахни</button>
+                <button type="button" class="btn btn-delete remove-merchant" data-merchant="${merchant.name}" title="Премахни търговеца">
+                    <i class="fas fa-times"></i>
+                </button>
             `;
             
             // Добавяме търговеца в списъка
             this.categoryMerchantsList.appendChild(merchantElement);
             
             // Добавяме слушател за премахване на търговец
-            const removeButton = merchantElement.querySelector('.btn-remove-merchant');
-            removeButton.addEventListener('click', () => this.removeMerchantFromCategory(merchant.name));
+            const removeButton = merchantElement.querySelector('.remove-merchant');
+            removeButton.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                this.removeMerchantFromCategory(merchant.name);
+            });
         });
+        
+        // Проверяваме дали има нужда от скролване
+        setTimeout(() => {
+            const container = document.querySelector('.merchants-container');
+            if (container && container.scrollHeight > container.clientHeight) {
+                container.classList.add('scrollable');
+            }
+        }, 100);
     }
     
     /**

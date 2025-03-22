@@ -258,10 +258,54 @@ class SupabaseService {
                 throw error;
             }
             
+            // Добавяме броя на търговци за всяка категория
+            if (data && data.length > 0) {
+                // Извличаме броя на търговци за всяка категория
+                const merchantCounts = await this.getMerchantCountsByCategories();
+                
+                // Добавяме броя на търговци към всяка категория
+                data.forEach(category => {
+                    category.merchantCount = merchantCounts[category.id] || 0;
+                });
+            }
+            
             return data || [];
         } catch (error) {
             console.error('Грешка при извличане на категории:', error);
             throw error;
+        }
+    }
+    
+    /**
+     * Извличане на броя на търговци за всяка категория
+     * @returns {Promise<Object>} Обект с броя на търговци за всяка категория
+     */
+    async getMerchantCountsByCategories() {
+        try {
+            const { data, error } = await this.supabase
+                .from(this.merchantCategoriesTable)
+                .select('category_id');
+                
+            if (error) {
+                console.error('Грешка при извличане на броя на търговци по категории:', error);
+                throw error;
+            }
+            
+            // Създаваме обект с броя на търговци за всяка категория
+            const merchantCounts = {};
+            
+            if (data && data.length > 0) {
+                data.forEach(item => {
+                    if (item.category_id) {
+                        merchantCounts[item.category_id] = (merchantCounts[item.category_id] || 0) + 1;
+                    }
+                });
+            }
+            
+            return merchantCounts;
+        } catch (error) {
+            console.error('Грешка при извличане на броя на търговци по категории:', error);
+            return {};
         }
     }
 
