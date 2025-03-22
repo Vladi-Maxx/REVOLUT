@@ -264,24 +264,45 @@ h1, h2, h3 {
     box-shadow: 0 4px 12px rgba(124, 58, 237, 0.3);
 }
 
-/* Секция с таблица и графика */
-.data-container {
+/* Основна структура на дашборда */
+.dashboard-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    grid-template-columns: 1fr 1fr;
     gap: 24px;
     margin-bottom: 24px;
+}
+
+/* Стилове за лявата колона с таблицата */
+.merchants-section {
+    background-color: white;
+    border-radius: 12px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05), 0 1px 3px rgba(0, 0, 0, 0.1);
+    padding: 16px;
+    height: fit-content;
+}
+
+/* Стилове за дясната колона с графиките */
+.charts-column {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+.merchants-chart-section, .categories-section {
+    background-color: white;
+    border-radius: 12px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05), 0 1px 3px rgba(0, 0, 0, 0.1);
+    padding: 16px;
 }
 
 .table-container, .chart-container {
     background-color: white;
     border-radius: 12px;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05), 0 1px 3px rgba(0, 0, 0, 0.1);
     overflow: hidden;
-    padding: 16px;
 }
 
 .chart-container {
-    min-height: 400px;
+    min-height: 300px;
     display: flex;
     flex-direction: column;
     justify-content: center;
@@ -289,15 +310,8 @@ h1, h2, h3 {
 
 /* Секция с графика за категории */
 .categories-section {
-    margin-bottom: 24px;
-    background-color: white;
-    border-radius: 12px;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05), 0 1px 3px rgba(0, 0, 0, 0.1);
-    padding: 16px;
-    clear: both; /* Ensure it starts on a new line */
-    width: 100%; /* Make it full width */
-    display: block; /* Ensure block-level display */
-    position: relative; /* Establish positioning context */
+    margin-bottom: 0;
+    position: relative;
     z-index: 1;
 }
 
@@ -444,7 +458,7 @@ tbody tr:hover {
         grid-template-columns: 1fr;
     }
     
-    .data-container {
+    .dashboard-grid {
         grid-template-columns: 1fr;
     }
     

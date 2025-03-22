@@ -88,9 +88,9 @@
                     </div>
                 </section>
 
-                <section class="merchants-section">
-                    <h2>Транзакции по търговци</h2>
-                    <div class="data-container">
+                <div class="dashboard-grid">
+                    <section class="merchants-section">
+                        <h2>Транзакции по търговци</h2>
                         <div class="table-container">
                             <table id="merchants-table">
                                 <thead>
@@ -106,18 +106,24 @@
                                 </tbody>
                             </table>
                         </div>
-                        <div class="chart-container">
-                            <canvas id="merchants-chart"></canvas>
-                        </div>
+                    </section>
+                    
+                    <div class="charts-column">
+                        <section class="merchants-chart-section">
+                            <h2>Графика с търговци</h2>
+                            <div class="chart-container">
+                                <canvas id="merchants-chart"></canvas>
+                            </div>
+                        </section>
+                        
+                        <section class="categories-section">
+                            <h2>Разпределение по категории</h2>
+                            <div class="chart-container categories-chart-container">
+                                <canvas id="categories-chart"></canvas>
+                            </div>
+                        </section>
                     </div>
-                </section>
-                
-                <section class="categories-section">
-                    <h2>Разпределение по категории</h2>
-                    <div class="chart-container categories-chart-container">
-                        <canvas id="categories-chart"></canvas>
-                    </div>
-                </section>
+                </div>
 
                 <section class="transactions-section">
                     <h2>Детайлни транзакции</h2>
