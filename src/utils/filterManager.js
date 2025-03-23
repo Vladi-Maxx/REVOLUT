@@ -81,9 +81,10 @@ class FilterManager {
      * Прилагане на филтри
      * @param {Array} allTransactions - Пълен набор от транзакции (опционален)
      * @param {Array} selectedMerchantNames - Имена на избрани търговци за филтриране (опционален)
+     * @param {boolean} preserveMerchantsTable - Флаг, указващ дали да запази пълната таблица с търговци (опционален)
      * @returns {Promise<Object>} Резултат от филтрирането
      */
-    async applyFilters(allTransactions = null, selectedMerchantNames = null) {
+    async applyFilters(allTransactions = null, selectedMerchantNames = null, preserveMerchantsTable = false) {
         try {
             // Показваме съобщение за зареждане
             this.showNotification('Филтриране на данни...');
@@ -220,24 +221,47 @@ class FilterManager {
                 console.log('%c[FilterManager] Брой транзакции след филтриране по търговци:', 'background: #3498db; color: white; padding: 2px 5px; border-radius: 3px;', filteredTransactions.length);
             }
             
-            // Проверка за възможни липсващи транзакции в обобщенията
+            // Подготвяме два набора от данни за търговци - един филтриран и един пълен
+            let preparedChartData;
+            let merchantsData;
+            
             if (specialFilterApplied) {
-                // Ако е приложен специален филтър (категория или търговци), използваме базовите филтрирани транзакции за подготовка на данни за графики
-                this.preparedChartData = this.dataUtils.prepareChartData(
-                    this.dataUtils.groupTransactionsByMerchant(filteredBeforeCategory)
-                );
+                // Ако preserveMerchantsTable е true, използваме всички филтрирани транзакции преди филтъра по търговци/категория 
+                // за таблицата с търговци
+                if (preserveMerchantsTable) {
+                    // Подготвяме пълните данни за таблицата с търговци
+                    console.log('%c[FilterManager] Запазване на пълната таблица с търговци', 'background: #3498db; color: white; padding: 2px 5px; border-radius: 3px;');
+                    
+                    // Използваме базовите филтрирани транзакции за таблицата с търговци
+                    merchantsData = this.dataUtils.groupTransactionsByMerchant(filteredBeforeCategory);
+                    
+                    // Но използваме филтрираните транзакции по търговци за графиката
+                    preparedChartData = this.dataUtils.prepareChartData(
+                        this.dataUtils.groupTransactionsByMerchant(filteredTransactions)
+                    );
+                } else {
+                    // Стандартно поведение ако не запазваме таблицата с търговци
+                    merchantsData = this.dataUtils.groupTransactionsByMerchant(filteredTransactions);
+                    preparedChartData = this.dataUtils.prepareChartData(merchantsData);
+                }
             } else {
-                // Иначе използваме стандартните филтрирани транзакции
-                this.preparedChartData = null; // Нулираме данните за графики, за да се изчислят наново
+                // Ако няма специален филтър, използваме стандартните филтрирани транзакции за всички компоненти
+                merchantsData = this.dataUtils.groupTransactionsByMerchant(filteredTransactions);
+                preparedChartData = this.dataUtils.prepareChartData(merchantsData);
             }
+            
+            // Запазваме обработените данни за графики
+            this.preparedChartData = preparedChartData;
             
             // Подготвяме данни със статистики за текущите транзакции
             const transactionStats = this.dataUtils.calculateTransactionStats(filteredTransactions);
             
-            // Връщаме резултат с филтрираните транзакции и статистиките
+            // Връщаме резултат с филтрираните транзакции, статистиките и данните за търговци
             const result = {
                 transactions: filteredTransactions,
-                stats: transactionStats
+                stats: transactionStats,
+                merchantsData: merchantsData,
+                preserveMerchantsTable: preserveMerchantsTable
             };
             
             // Известяваме за успешното филтриране
@@ -246,7 +270,9 @@ class FilterManager {
             // Добавяме диагностичен лог за резултата
             console.log('%c[FilterManager] Резултат от филтрирането:', 'background: #2ecc71; color: white; padding: 2px 5px; border-radius: 3px;', {
                 'Брой филтрирани транзакции': filteredTransactions.length,
+                'Брой търговци': merchantsData ? merchantsData.length : 0,
                 'Статистики': transactionStats,
+                'Запазена таблица с търговци': preserveMerchantsTable,
                 'Пример за транзакция': filteredTransactions.length > 0 ? filteredTransactions[0] : null
             });
             

@@ -506,6 +506,7 @@ class DashboardView {
             console.log('%c[DashboardView] Обработка на резултат от филтриране:', 'background: #3498db; color: white; padding: 2px 5px; border-radius: 3px;', {
                 'Брой транзакции': filteredTransactions.length,
                 'Статистики': result.stats,
+                'Запазена таблица с търговци': result.preserveMerchantsTable,
                 'Пример за транзакция': filteredTransactions.length > 0 ? filteredTransactions[0] : null
             });
             
@@ -516,11 +517,21 @@ class DashboardView {
                 return;
             }
             
-            // Групираме транзакциите по търговци
-            const merchantsData = DataUtils.groupTransactionsByMerchant(filteredTransactions);
+            // Определяме какви данни за търговци да използваме:
+            // 1. Ако preserveMerchantsTable е true, използваме предварително групираните данни от result.merchantsData
+            // 2. В противен случай, генерираме нови данни от филтрираните транзакции
+            let merchantsData;
+            if (result.preserveMerchantsTable && result.merchantsData) {
+                console.log('%c[DashboardView] Използване на запазената таблица с търговци', 'background: #2ecc71; color: white; padding: 2px 5px; border-radius: 3px;');
+                merchantsData = result.merchantsData;
+            } else {
+                // Групираме транзакциите по търговци
+                merchantsData = DataUtils.groupTransactionsByMerchant(filteredTransactions);
+            }
+            
             console.log('%c[DashboardView] Групирани данни по търговци:', 'background: #2ecc71; color: white; padding: 2px 5px; border-radius: 3px;', {
-                'Брой групи': merchantsData.length,
-                'Пример за група': merchantsData.length > 0 ? merchantsData[0] : null
+                'Брой групи': merchantsData ? merchantsData.length : 0,
+                'Пример за група': merchantsData && merchantsData.length > 0 ? merchantsData[0] : null
             });
             
             // Обновяваме компонентите с филтрираните данни

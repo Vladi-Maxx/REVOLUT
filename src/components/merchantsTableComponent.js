@@ -176,5 +176,38 @@ class MerchantsTableComponent {
         if (!merchantSelectionManager) return;
         
         this.merchantSelectionManager = merchantSelectionManager;
+        
+        // Добавяме информативно съобщение в горната част на таблицата
+        const merchantsTable = document.getElementById('merchants-table');
+        
+        if (merchantsTable) {
+            // Проверяваме дали вече не съществува съобщение
+            let infoMessage = document.querySelector('.merchants-table-info');
+            
+            if (!infoMessage) {
+                infoMessage = document.createElement('div');
+                infoMessage.className = 'merchants-table-info';
+                infoMessage.innerHTML = '<i class="fa fa-info-circle"></i> Можете да изберете няколко търговеца с <kbd>Ctrl</kbd> + клик или <kbd>⌘ Cmd</kbd> + клик';
+                infoMessage.style.padding = '8px';
+                infoMessage.style.marginBottom = '10px';
+                infoMessage.style.fontSize = '14px';
+                infoMessage.style.backgroundColor = '#f8f9fa';
+                infoMessage.style.borderRadius = '4px';
+                infoMessage.style.border = '1px solid #ddd';
+                
+                // Стилизиране на клавишите
+                const keys = infoMessage.querySelectorAll('kbd');
+                keys.forEach(key => {
+                    key.style.backgroundColor = '#eee';
+                    key.style.borderRadius = '3px';
+                    key.style.border = '1px solid #b4b4b4';
+                    key.style.padding = '1px 4px';
+                    key.style.fontFamily = 'monospace';
+                });
+                
+                // Вмъкваме съобщението преди таблицата
+                merchantsTable.parentNode.insertBefore(infoMessage, merchantsTable);
+            }
+        }
     }
 }
