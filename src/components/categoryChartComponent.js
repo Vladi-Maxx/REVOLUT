@@ -24,6 +24,8 @@ class CategoryChartComponent {
         
         this.chart = null;
         this.currentCategories = []; // Съхраняваме референция към текущите категории
+        this.selectedCategoryIndex = -1; // Индекс на избраната категория (-1 означава, че няма избрана)
+        this.selectedCategory = null; // Обект с данни за избраната категория
     }
 
     /**
@@ -77,7 +79,9 @@ class CategoryChartComponent {
                 name: category.name ? String(category.name) : 'Неизвестна',
                 totalAmount: Math.abs(category.totalAmount || 0),
                 count: category.count || 0,
-                color: category.color || '#3498db'
+                color: category.color || '#3498db',
+                // Запазваме оригиналните данни за категорията
+                originalData: category
             };
         });
         
@@ -94,7 +98,14 @@ class CategoryChartComponent {
         const data = topCategories.map(category => Math.abs(category.totalAmount || 0));
         
         // Използваме цветовете от категориите
-        const backgroundColors = topCategories.map(category => category.color);
+        const backgroundColors = topCategories.map((category, index) => {
+            // Ако категорията е избрана, правим цвета по-ярък
+            if (index === this.selectedCategoryIndex) {
+                // Добавяме прозрачност 0.7 за избраната категория
+                return category.color + 'DD';
+            }
+            return category.color;
+        });
         
         // Запазваме локална референция за използване в Chart.js функциите
         const self = this;
@@ -108,7 +119,19 @@ class CategoryChartComponent {
                     label: 'Разходи по категории',
                     data: data,
                     backgroundColor: backgroundColors,
-                    borderWidth: 1
+                    borderWidth: 1,
+                    // Добавяме по-голям border за избраната категория
+                    borderColor: topCategories.map((_, index) => 
+                        index === this.selectedCategoryIndex ? '#000000' : '#ffffff'
+                    ),
+                    // Увеличаваме border за избраната категория
+                    borderWidth: topCategories.map((_, index) => 
+                        index === this.selectedCategoryIndex ? 3 : 1
+                    ),
+                    // Леко изместване на избраната категория
+                    offset: topCategories.map((_, index) => 
+                        index === this.selectedCategoryIndex ? 10 : 0
+                    )
                 }]
             },
             options: {
@@ -133,16 +156,26 @@ class CategoryChartComponent {
                                     const style = meta.controller.getStyle(i);
                                     const categoryName = String(category.name);
                                     
+                                    // Добавяме индикатор за избрана категория
+                                    const isSelected = i === self.selectedCategoryIndex;
+                                    
                                     return {
-                                        text: categoryName,
+                                        text: isSelected ? `➤ ${categoryName}` : categoryName,
                                         fillStyle: category.color, // Използваме цвета от категорията
-                                        strokeStyle: style.borderColor,
-                                        lineWidth: style.borderWidth,
+                                        strokeStyle: isSelected ? '#000000' : style.borderColor,
+                                        lineWidth: isSelected ? 2 : style.borderWidth,
                                         hidden: false,
-                                        index: i
+                                        index: i,
+                                        // Добавяме по-дебел шрифт за избраната категория
+                                        fontStyle: isSelected ? 'bold' : 'normal'
                                     };
                                 });
                             }
+                        },
+                        onClick: function(e, legendItem, legend) {
+                            // Извикваме нашия метод за избор на категория при клик върху легендата
+                            const index = legendItem.index;
+                            self.toggleCategorySelection(index);
                         }
                     },
                     tooltip: {
@@ -159,6 +192,16 @@ class CategoryChartComponent {
                                 return `${categoryName}: ${DataUtils.formatAmount(value)} (${percentage}%)`;
                             }
                         }
+                    }
+                },
+                onClick: function(event, elements) {
+                    // Проверяваме дали е кликнато върху сегмент от графиката
+                    if (elements && elements.length > 0) {
+                        const index = elements[0].index;
+                        self.toggleCategorySelection(index);
+                    } else {
+                        // Ако е кликнато извън сегментите, изчистваме избора
+                        self.clearCategorySelection();
                     }
                 }
             }
@@ -187,14 +230,144 @@ class CategoryChartComponent {
             }
         }
         
+        // Запазваме избраната категория преди да унищожим графиката
+        const selectedCategoryName = this.selectedCategory ? this.selectedCategory.name : null;
+        
         // Ако графиката вече съществува, я унищожаваме
         if (this.chart) {
             this.chart.destroy();
             this.chart = null;
         }
         
+        // Изчистваме избраната категория
+        this.selectedCategoryIndex = -1;
+        this.selectedCategory = null;
+        
         // Инициализираме нова графика с новите данни
         this.initChart(categoriesData);
+        
+        // Ако имаме предишна избрана категория, опитваме се да я намерим в новите данни
+        if (selectedCategoryName) {
+            const newIndex = this.currentCategories.findIndex(cat => cat.name === selectedCategoryName);
+            if (newIndex !== -1) {
+                this.toggleCategorySelection(newIndex);
+            }
+        }
+    }
+    
+    /**
+     * Превключване на избора на категория
+     * @param {number} index - Индекс на категорията
+     */
+    toggleCategorySelection(index) {
+        console.log('%c[CategoryChartComponent] Превключване на избора на категория', 'background: #3498db; color: white; padding: 2px 5px; border-radius: 3px;', index);
+        
+        // Ако категорията вече е избрана, изчистваме избора
+        if (this.selectedCategoryIndex === index) {
+            this.clearCategorySelection();
+            return;
+        }
+        
+        // Задаваме новата избрана категория
+        this.selectedCategoryIndex = index;
+        this.selectedCategory = this.currentCategories[index];
+        
+        // Обновяваме графиката, за да отрази визуално избора
+        this.updateChartAppearance();
+        
+        // Известяваме за промяната, ако има регистрирани слушатели
+        if (typeof this.onCategorySelectCallback === 'function') {
+            this.onCategorySelectCallback(this.selectedCategory.originalData);
+        }
+    }
+    
+    /**
+     * Изчистване на избора на категория
+     */
+    clearCategorySelection() {
+        console.log('%c[CategoryChartComponent] Изчистване на избора на категория', 'background: #3498db; color: white; padding: 2px 5px; border-radius: 3px;');
+        this.selectedCategoryIndex = -1;
+        this.selectedCategory = null;
+        
+        // Обновяваме графиката, за да отрази визуално изчистването на избора
+        this.updateChartAppearance();
+        
+        // Известяваме за промяната, ако има регистрирани слушатели
+        if (typeof this.onCategorySelectCallback === 'function') {
+            this.onCategorySelectCallback(null);
+        }
+    }
+    
+    /**
+     * Обновяване на визуалния изглед на графиката
+     */
+    updateChartAppearance() {
+        console.log('%c[CategoryChartComponent] Обновяване на визуалния изглед на графиката', 'background: #3498db; color: white; padding: 2px 5px; border-radius: 3px;');
+        if (!this.chart) {
+            console.warn('%c[CategoryChartComponent] Няма графика за обновяване', 'background: #f39c12; color: white; padding: 2px 5px; border-radius: 3px;');
+            return;
+        }
+        
+        // Обновяваме цветовете на графиката
+        const backgroundColors = this.currentCategories.map((category, index) => {
+            // Ако категорията е избрана, правим цвета по-ярък
+            if (index === this.selectedCategoryIndex) {
+                // Добавяме прозрачност 0.7 за избраната категория
+                return category.color + 'DD';
+            }
+            return category.color;
+        });
+        
+        // Обновяваме цветовете на границите
+        const borderColors = this.currentCategories.map((_, index) => 
+            index === this.selectedCategoryIndex ? '#000000' : '#ffffff'
+        );
+        
+        // Обновяваме дебелината на границите
+        const borderWidths = this.currentCategories.map((_, index) => 
+            index === this.selectedCategoryIndex ? 3 : 1
+        );
+        
+        // Обновяваме изместването
+        const offsets = this.currentCategories.map((_, index) => 
+            index === this.selectedCategoryIndex ? 10 : 0
+        );
+        
+        // Прилагаме промените към графиката
+        this.chart.data.datasets[0].backgroundColor = backgroundColors;
+        this.chart.data.datasets[0].borderColor = borderColors;
+        this.chart.data.datasets[0].borderWidth = borderWidths;
+        this.chart.data.datasets[0].offset = offsets;
+        
+        // Обновяваме графиката
+        this.chart.update();
+    }
+    
+    /**
+     * Задаване на callback функция, която ще се извика при избор на категория
+     * @param {Function} callback - Функция, която ще се извика при избор на категория
+     */
+    setOnCategorySelectCallback(callback) {
+        console.log('%c[CategoryChartComponent] Задаване на callback за избор на категория', 'background: #3498db; color: white; padding: 2px 5px; border-radius: 3px;');
+        if (typeof callback !== 'function') {
+            console.error('%c[CategoryChartComponent] Подаденият callback не е функция', 'background: #e74c3c; color: white; padding: 2px 5px; border-radius: 3px;');
+            return;
+        }
+        this.onCategorySelectCallback = callback;
+    }
+    
+    /**
+     * Връща обект с информация за текущо избраната категория за филтриране
+     * @returns {Object|null} Обект с информация за избраната категория или null, ако няма избрана
+     */
+    getCategoryFilter() {
+        console.log('%c[CategoryChartComponent] Вземане на филтър за категория', 'background: #3498db; color: white; padding: 2px 5px; border-radius: 3px;');
+        if (!this.selectedCategory) {
+            return null;
+        }
+        
+        // Връщаме оригиналните данни за категорията
+        return this.selectedCategory.originalData;
     }
 }
 

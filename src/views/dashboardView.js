@@ -128,6 +128,9 @@ class DashboardView {
         
         // Добавяне на слушатели за събития
         this.addEventListeners();
+        
+        // Съхраняваме текущо филтрираните транзакции
+        this.filteredTransactions = [];
     }
 
     /**
@@ -206,6 +209,11 @@ class DashboardView {
                 this.applyFilters();
             });
         }
+        
+        // Добавяме слушател за избор на категория от графиката
+        this.categoryChartComponent.setOnCategorySelectCallback((category) => {
+            this.onCategorySelect(category);
+        });
     }
 
     /**
@@ -265,6 +273,9 @@ class DashboardView {
             
             // Извличаме филтрираните транзакции от резултата
             const filteredTransactions = result.filteredTransactions;
+            
+            // Запазваме филтрираните транзакции за използване при филтриране по категория
+            this.filteredTransactions = filteredTransactions;
             
             // Ако няма транзакции, показваме съобщение
             if (!filteredTransactions || filteredTransactions.length === 0) {
@@ -375,6 +386,109 @@ class DashboardView {
         
         // Показваме транзакциите на избрания търговец
         this.transactionsTableComponent.showMerchantTransactions(merchant);
+    }
+
+    /**
+     * Обработка при избор на категория
+     * @param {Object} category - Обект с данни за категорията
+     */
+    async onCategorySelect(category) {
+        console.log('%c[DashboardView] Избрана категория:', 'background: #9b59b6; color: white; padding: 2px 5px; border-radius: 3px;', category);
+        
+        if (!category) {
+            // Ако категорията е null, показваме всички транзакции (изчистваме филтъра)
+            this.transactionsTableComponent.updateTable(this.filteredTransactions);
+            
+            // Обновяваме и останалите компоненти с всички филтрирани транзакции
+            const merchantsData = DataUtils.groupTransactionsByMerchant(this.filteredTransactions);
+            this.merchantsTableComponent.updateTable(merchantsData);
+            
+            // Обновяваме статистиките
+            const stats = DataUtils.calculateTransactionStats(this.filteredTransactions);
+            this.summaryComponent.updateSummary(stats);
+            
+            // Скриваме индикатора за филтър по категория
+            const filterIndicator = document.getElementById('category-filter-indicator');
+            if (filterIndicator) {
+                filterIndicator.style.display = 'none';
+            }
+            
+            return;
+        }
+        
+        // Проверяваме дали е избрана категорията "Некатегоризирани"
+        const isUncategorized = category.name === 'Некатегоризирани' || 
+                               (category.originalData && category.originalData.name === 'Некатегоризирани');
+        
+        try {
+            let merchantNames = [];
+            
+            if (isUncategorized) {
+                // Специална обработка за некатегоризирани търговци
+                console.log('%c[DashboardView] Избрана е категория "Некатегоризирани"', 'background: #9b59b6; color: white; padding: 2px 5px; border-radius: 3px;');
+                
+                // Вземаме всички търговци без категория
+                const unassignedMerchants = await this.supabaseService.getUnassignedMerchants();
+                merchantNames = unassignedMerchants.map(merchant => merchant.name);
+                
+                console.log('%c[DashboardView] Некатегоризирани търговци:', 'background: #9b59b6; color: white; padding: 2px 5px; border-radius: 3px;', merchantNames);
+            } else {
+                // Стандартна обработка за нормални категории
+                // Извличаме ID на категорията от обекта
+                // Категорията може да дойде в различни формати в зависимост от източника
+                const categoryId = category.id || (category.originalData && category.originalData.id);
+                
+                // Ако ID все още е undefined, опитваме да го извлечем от името на категорията
+                if (!categoryId && category.name) {
+                    // Извличаме категорията по име от всички категории
+                    const allCategories = await this.supabaseService.getAllCategories();
+                    const foundCategory = allCategories.find(c => c.name === category.name);
+                    if (foundCategory) {
+                        console.log('%c[DashboardView] Намерена категория по име:', 'background: #9b59b6; color: white; padding: 2px 5px; border-radius: 3px;', foundCategory);
+                        return this.onCategorySelect(foundCategory); // Рекурсивно извикваме функцията с намерената категория
+                    }
+                }
+                
+                console.log('%c[DashboardView] ID на избраната категория:', 'background: #9b59b6; color: white; padding: 2px 5px; border-radius: 3px;', categoryId);
+                
+                // Извличаме всички търговци, принадлежащи към избраната категория
+                if (categoryId) {
+                    merchantNames = await this.supabaseService.getMerchantsByCategory(categoryId);
+                }
+                
+                console.log('%c[DashboardView] Търговци в категорията:', 'background: #9b59b6; color: white; padding: 2px 5px; border-radius: 3px;', merchantNames);
+            }
+            
+            // Филтрираме транзакциите по имената на търговците от избраната категория
+            const categoryTransactions = this.filteredTransactions.filter(transaction => {
+                // Проверяваме дали името на търговеца (Description) е в списъка с търговци от категорията
+                return merchantNames.includes(transaction.Description);
+            });
+            
+            console.log('%c[DashboardView] Брой транзакции в категорията:', 'background: #9b59b6; color: white; padding: 2px 5px; border-radius: 3px;', categoryTransactions.length);
+            
+            // Обновяваме таблицата с транзакции, показвайки само тези от избраната категория
+            this.transactionsTableComponent.updateTable(categoryTransactions);
+            
+            // Групираме транзакциите по търговци и обновяваме таблицата с търговци
+            const merchantsData = DataUtils.groupTransactionsByMerchant(categoryTransactions);
+            this.merchantsTableComponent.updateTable(merchantsData);
+            
+            // Изчисляваме и обновяваме статистиките
+            const stats = DataUtils.calculateTransactionStats(categoryTransactions);
+            this.summaryComponent.updateSummary(stats);
+            
+            // Добавяме визуална индикация, че е приложен филтър по категория
+            const filterIndicator = document.getElementById('category-filter-indicator');
+            if (filterIndicator) {
+                filterIndicator.textContent = `Филтър по категория: ${category.name}`;
+                filterIndicator.style.display = 'block';
+                filterIndicator.style.backgroundColor = isUncategorized ? '#CCCCCC' : (category.color || '#3498db');
+            }
+        } catch (error) {
+            console.error('%c[DashboardView] Грешка при филтриране по категория:', 'background: #c0392b; color: white; padding: 2px 5px; border-radius: 3px;', error);
+            this.showErrorMessage('Възникна грешка при филтриране по категория.');
+        }
     }
 
     /**

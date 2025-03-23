@@ -303,6 +303,15 @@ class DataUtils {
                 category.averageAmount = category.totalAmount / category.count;
                 category.averageAbsoluteAmount = category.totalAbsoluteAmount / category.count;
             }
+            
+            // Намираме ID на категорията по име
+            if (categories && Array.isArray(categories)) {
+                const foundCategory = categories.find(c => c.name === category.name);
+                if (foundCategory) {
+                    category.id = foundCategory.id;
+                }
+            }
+            
             return category;
         });
         
