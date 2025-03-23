@@ -363,11 +363,22 @@ class CategoryChartComponent {
     getCategoryFilter() {
         console.log('%c[CategoryChartComponent] Вземане на филтър за категория', 'background: #3498db; color: white; padding: 2px 5px; border-radius: 3px;');
         if (!this.selectedCategory) {
+            console.log('%c[CategoryChartComponent] Няма избрана категория', 'background: #3498db; color: white; padding: 2px 5px; border-radius: 3px;');
             return null;
         }
         
-        // Връщаме оригиналните данни за категорията
-        return this.selectedCategory.originalData;
+        // Подготвяме обстоен обект с информация за категорията
+        const categoryInfo = {
+            id: this.selectedCategory.id || (this.selectedCategory.originalData && this.selectedCategory.originalData.id),
+            name: this.selectedCategory.name,
+            color: this.selectedCategory.color,
+            originalData: this.selectedCategory.originalData || this.selectedCategory
+        };
+        
+        console.log('%c[CategoryChartComponent] Връщане на информация за категория:', 'background: #3498db; color: white; padding: 2px 5px; border-radius: 3px;', categoryInfo);
+        
+        // Връщаме подробна информация за категорията
+        return categoryInfo;
     }
 }
 

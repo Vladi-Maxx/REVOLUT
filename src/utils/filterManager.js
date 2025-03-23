@@ -121,15 +121,74 @@ class FilterManager {
                 type: selectedType // Използваме запазената стойност
             };
             
+            // Проверяваме дали има избрана категория
+            const categoryChartComponent = window.categoryChartComponent || null;
+            let selectedCategory = null;
+            
+            if (categoryChartComponent && typeof categoryChartComponent.getCategoryFilter === 'function') {
+                selectedCategory = categoryChartComponent.getCategoryFilter();
+                console.log('%c[FilterManager] Намерена избрана категория:', 'background: #3498db; color: white; padding: 2px 5px; border-radius: 3px;', selectedCategory);
+            } else {
+                console.log('%c[FilterManager] Няма намерена избрана категория', 'background: #3498db; color: white; padding: 2px 5px; border-radius: 3px;');
+            }
+            
             // Извличаме филтрираните транзакции
             let filteredTransactions;
             
             // Ако имаме всички транзакции в паметта, филтрираме локално
             if (this.allTransactions) {
                 filteredTransactions = this.filterTransactionsLocally(this.allTransactions, filters);
+                console.log('%c[FilterManager] Брой транзакции след базово филтриране:', 'background: #3498db; color: white; padding: 2px 5px; border-radius: 3px;', filteredTransactions.length);
             } else {
                 // Иначе извличаме от базата данни
                 filteredTransactions = await this.supabaseService.getTransactionsWithFilters(filters);
+            }
+            
+            // Запазваме копие на филтрираните транзакции преди филтриране по категория
+            const filteredBeforeCategory = [...filteredTransactions];
+            
+            // Ако има избрана категория, приложи и филтъра по категория
+            if (selectedCategory) {
+                console.log('%c[FilterManager] Прилагане на филтър по категория:', 'background: #3498db; color: white; padding: 2px 5px; border-radius: 3px;', selectedCategory.name);
+                
+                // Трябва да извлечем търговците за тази категория
+                let merchantNames = [];
+                
+                // Проверяваме дали е избрана категорията "Некатегоризирани"
+                const isUncategorized = selectedCategory.name === 'Некатегоризирани';
+                
+                if (isUncategorized) {
+                    // Вземаме всички търговци без категория
+                    const unassignedMerchants = await this.supabaseService.getUnassignedMerchants();
+                    merchantNames = unassignedMerchants.map(merchant => merchant.name);
+                } else if (selectedCategory.id) {
+                    // Извличаме всички търговци, принадлежащи към избраната категория
+                    merchantNames = await this.supabaseService.getMerchantsByCategory(selectedCategory.id);
+                }
+                
+                console.log('%c[FilterManager] Търговци в категорията:', 'background: #3498db; color: white; padding: 2px 5px; border-radius: 3px;', merchantNames);
+                
+                // Филтрираме транзакциите по имената на търговците от избраната категория
+                filteredTransactions = filteredTransactions.filter(transaction => {
+                    // Проверяваме дали името на търговеца (Description) е в списъка с търговци от категорията
+                    return merchantNames.includes(transaction.Description);
+                });
+                
+                console.log('%c[FilterManager] Брой транзакции след филтриране по категория:', 'background: #3498db; color: white; padding: 2px 5px; border-radius: 3px;', filteredTransactions.length);
+                
+                // Добавяме визуална индикация, че е приложен филтър по категория
+                const filterIndicator = document.getElementById('category-filter-indicator');
+                if (filterIndicator) {
+                    filterIndicator.textContent = `Филтър по категория: ${selectedCategory.name}`;
+                    filterIndicator.style.display = 'block';
+                    filterIndicator.style.backgroundColor = isUncategorized ? '#CCCCCC' : (selectedCategory.color || '#3498db');
+                }
+            } else {
+                // Ако няма избрана категория, скриваме индикатора
+                const filterIndicator = document.getElementById('category-filter-indicator');
+                if (filterIndicator) {
+                    filterIndicator.style.display = 'none';
+                }
             }
             
             // Актуализираме филтрите с данни от транзакциите
@@ -369,29 +428,38 @@ class FilterManager {
                 const normalizedTransactionType = transaction.Type ? String(transaction.Type).trim().toUpperCase() : '';
                 const normalizedFilterType = String(filters.type).trim().toUpperCase();
                 
+                let typeMatched = false;
+                
                 // Проверяваме за съвпадение или частично съвпадение
                 if (normalizedTransactionType === normalizedFilterType || 
                     normalizedTransactionType.includes(normalizedFilterType) || 
                     normalizedFilterType.includes(normalizedTransactionType)) {
-                    return true;
+                    typeMatched = true;
                 }
                 
                 // Ако няма директно съвпадение, проверяваме за други полета
-                const possibleTypeFields = ['type', 'TYPE', 'TransactionType', 'transactionType', 'Transaction Type', 'transaction_type'];
-                
-                // Проверяваме в алтернативните полета
-                for (const field of possibleTypeFields) {
-                    if (transaction[field]) {
-                        const transactionType = String(transaction[field]).trim().toUpperCase();
-                        
-                        if (transactionType === normalizedFilterType) {
-                            return true;
+                if (!typeMatched) {
+                    const possibleTypeFields = ['type', 'TYPE', 'TransactionType', 'transactionType', 'Transaction Type', 'transaction_type'];
+                    
+                    // Проверяваме в алтернативните полета
+                    for (const field of possibleTypeFields) {
+                        if (transaction[field]) {
+                            const transactionType = String(transaction[field]).trim().toUpperCase();
+                            
+                            if (transactionType === normalizedFilterType || 
+                                transactionType.includes(normalizedFilterType) || 
+                                normalizedFilterType.includes(transactionType)) {
+                                typeMatched = true;
+                                break;
+                            }
                         }
                     }
                 }
                 
-                // Ако стигнем дотук, няма съвпадение и транзакцията трябва да бъде филтрирана
-                keepTransaction = false;
+                // Ако няма съвпадение, филтрираме транзакцията
+                if (!typeMatched) {
+                    keepTransaction = false;
+                }
             }
             
             return keepTransaction;
@@ -453,14 +521,6 @@ class FilterManager {
             selectElement.appendChild(optionElement);
         });
     }
-    
-
-    
-
-    
-
-    
-
     
     /**
      * Празен метод за съвместимост със стария код

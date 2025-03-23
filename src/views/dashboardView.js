@@ -18,11 +18,18 @@ class DashboardView {
             'categories-chart': categoriesChartElement
         });
         
+        // Създаваме и инициализираме компоненти
+        this.transactionsTableComponent = new TransactionsTableComponent(this);
         this.summaryComponent = new SummaryComponent();
-        this.merchantsTableComponent = new MerchantsTableComponent();
+        this.merchantsTableComponent = new MerchantsTableComponent(this);
         this.chartComponent = new ChartComponent();
         this.categoryChartComponent = new CategoryChartComponent();
-        this.transactionsTableComponent = new TransactionsTableComponent();
+        
+        // Запазваме глобална референция към categoryChartComponent за ползване от FilterManager
+        window.categoryChartComponent = this.categoryChartComponent;
+        
+        // Инициализираме филтъра
+        this.initFilters();
         
         // Инициализиране на елементите за филтриране
         this.startDateInput = document.getElementById('start-date');
@@ -143,6 +150,12 @@ class DashboardView {
         this.startDateDisplay = document.getElementById('start-date-display');
         this.endDateDisplay = document.getElementById('end-date-display');
         
+        // Проверяваме дали елементите съществуват преди да продължим
+        if (!this.startDateInput || !this.endDateInput) {
+            console.warn('%c[DashboardView] Липсват елементите за избор на дати, пропускаме инициализацията на филтрите', 'background: #f39c12; color: white; padding: 2px 5px; border-radius: 3px;');
+            return;
+        }
+        
         // Други елементи на филтъра
         this.currencySelect = document.getElementById('currency');
         this.transactionTypeSelect = document.getElementById('transaction-type');
@@ -151,13 +164,18 @@ class DashboardView {
         // Задаване на начални стойности за датите с използване на DateUtils
         const { startDate, endDate } = DateUtils.getLastMonthRange();
         
-        // Задаваме стойности на скритите date полета
+        // Задаваме стойности на date полетата
         this.startDateInput.value = DateUtils.formatDateForDateInput(startDate);
         this.endDateInput.value = DateUtils.formatDateForDateInput(endDate);
         
-        // Задаваме стойности на видимите текстови полета
-        this.startDateDisplay.value = DataUtils.formatDate(startDate);
-        this.endDateDisplay.value = DataUtils.formatDate(endDate);
+        // Задаваме стойности на видимите текстови полета само ако те съществуват
+        if (this.startDateDisplay) {
+            this.startDateDisplay.value = DataUtils.formatDate(startDate);
+        }
+        
+        if (this.endDateDisplay) {
+            this.endDateDisplay.value = DataUtils.formatDate(endDate);
+        }
     }
 
     /**
@@ -396,16 +414,9 @@ class DashboardView {
         console.log('%c[DashboardView] Избрана категория:', 'background: #9b59b6; color: white; padding: 2px 5px; border-radius: 3px;', category);
         
         if (!category) {
-            // Ако категорията е null, показваме всички транзакции (изчистваме филтъра)
-            this.transactionsTableComponent.updateTable(this.filteredTransactions);
-            
-            // Обновяваме и останалите компоненти с всички филтрирани транзакции
-            const merchantsData = DataUtils.groupTransactionsByMerchant(this.filteredTransactions);
-            this.merchantsTableComponent.updateTable(merchantsData);
-            
-            // Обновяваме статистиките
-            const stats = DataUtils.calculateTransactionStats(this.filteredTransactions);
-            this.summaryComponent.updateSummary(stats);
+            // Ако категорията е null, това означава отмяна на филтъра по категория
+            // В този случай трябва да приложим отново всички останали филтри
+            console.log('%c[DashboardView] Премахване на филтър по категория и връщане към стандартните филтри', 'background: #9b59b6; color: white; padding: 2px 5px; border-radius: 3px;');
             
             // Скриваме индикатора за филтър по категория
             const filterIndicator = document.getElementById('category-filter-indicator');
@@ -413,6 +424,8 @@ class DashboardView {
                 filterIndicator.style.display = 'none';
             }
             
+            // Прилагаме отново стандартните филтри без категорията
+            this.applyFilters();
             return;
         }
         
@@ -459,20 +472,55 @@ class DashboardView {
                 console.log('%c[DashboardView] Търговци в категорията:', 'background: #9b59b6; color: white; padding: 2px 5px; border-radius: 3px;', merchantNames);
             }
             
-            // Филтрираме транзакциите по имената на търговците от избраната категория
-            const categoryTransactions = this.filteredTransactions.filter(transaction => {
+            // Получаваме текущите филтри от интерфейса
+            const currencyFilter = document.getElementById('currency').value;
+            const typeFilter = document.getElementById('transaction-type').value;
+            const startDateValue = document.getElementById('start-date').value;
+            const endDateValue = document.getElementById('end-date').value;
+            
+            console.log('%c[DashboardView] Текущи филтри преди филтриране по категория:', 'background: #9b59b6; color: white; padding: 2px 5px; border-radius: 3px;', {
+                startDate: startDateValue,
+                endDate: endDateValue,
+                currency: currencyFilter,
+                type: typeFilter
+            });
+
+            // Създаваме обект с филтри
+            const filters = {
+                startDate: startDateValue ? new Date(startDateValue) : null,
+                endDate: endDateValue ? new Date(endDateValue) : null,
+                currency: currencyFilter,
+                type: typeFilter
+            };
+            
+            // Първо филтрираме транзакциите съгласно стандартните филтри
+            let filteredByStandardFilters = this.allTransactions;
+            
+            if (this.filterManager) {
+                // Използваме filterManager за прилагане на стандартните филтри
+                filteredByStandardFilters = this.filterManager.filterTransactionsLocally(this.allTransactions, filters);
+            }
+            
+            console.log('%c[DashboardView] Брой транзакции след прилагане на стандартни филтри:', 'background: #9b59b6; color: white; padding: 2px 5px; border-radius: 3px;', filteredByStandardFilters.length);
+
+            // След това филтрираме транзакциите по имената на търговците от избраната категория
+            const categoryTransactions = filteredByStandardFilters.filter(transaction => {
                 // Проверяваме дали името на търговеца (Description) е в списъка с търговци от категорията
                 return merchantNames.includes(transaction.Description);
             });
             
-            console.log('%c[DashboardView] Брой транзакции в категорията:', 'background: #9b59b6; color: white; padding: 2px 5px; border-radius: 3px;', categoryTransactions.length);
+            console.log('%c[DashboardView] Брой транзакции след филтриране по категория:', 'background: #9b59b6; color: white; padding: 2px 5px; border-radius: 3px;', categoryTransactions.length);
             
-            // Обновяваме таблицата с транзакции, показвайки само тези от избраната категория
+            // Обновяваме таблицата с транзакции, показвайки тези от избраната категория
             this.transactionsTableComponent.updateTable(categoryTransactions);
             
             // Групираме транзакциите по търговци и обновяваме таблицата с търговци
             const merchantsData = DataUtils.groupTransactionsByMerchant(categoryTransactions);
             this.merchantsTableComponent.updateTable(merchantsData);
+            
+            // Обновяваме графиката за търговци с филтрираните данни
+            const chartData = DataUtils.prepareChartData(merchantsData);
+            this.chartComponent.updateChart(chartData);
             
             // Изчисляваме и обновяваме статистиките
             const stats = DataUtils.calculateTransactionStats(categoryTransactions);
