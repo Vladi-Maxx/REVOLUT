@@ -80,9 +80,10 @@ class FilterManager {
     /**
      * Прилагане на филтри
      * @param {Array} allTransactions - Пълен набор от транзакции (опционален)
+     * @param {Array} selectedMerchantNames - Имена на избрани търговци за филтриране (опционален)
      * @returns {Promise<Object>} Резултат от филтрирането
      */
-    async applyFilters(allTransactions = null) {
+    async applyFilters(allTransactions = null, selectedMerchantNames = null) {
         try {
             // Показваме съобщение за зареждане
             this.showNotification('Филтриране на данни...');
@@ -144,121 +145,121 @@ class FilterManager {
                 filteredTransactions = await this.supabaseService.getTransactionsWithFilters(filters);
             }
             
-            // Запазваме копие на филтрираните транзакции преди филтриране по категория
+            // Запазваме копие на филтрираните транзакции преди филтриране по категория или търговци
             const filteredBeforeCategory = [...filteredTransactions];
+            
+            // Флаг, който следи дали е приложен някакъв специален филтър (категория или търговци)
+            let specialFilterApplied = false;
             
             // Ако има избрана категория, приложи и филтъра по категория
             if (selectedCategory) {
-                console.log('%c[FilterManager] Прилагане на филтър по категория:', 'background: #3498db; color: white; padding: 2px 5px; border-radius: 3px;', selectedCategory.name);
+                specialFilterApplied = true;
+                // Актуализирани за работа с обекта от getCategoryFilter
+                const categoryId = selectedCategory.id;
                 
-                // Трябва да извлечем търговците за тази категория
-                let merchantNames = [];
+                console.log('%c[FilterManager] Филтриране по категория:', 'background: #3498db; color: white; padding: 2px 5px; border-radius: 3px;', categoryId);
                 
-                // Проверяваме дали е избрана категорията "Некатегоризирани"
-                const isUncategorized = selectedCategory.name === 'Некатегоризирани';
-                
-                if (isUncategorized) {
+                // Специална обработка за некатегоризираните транзакции
+                if (selectedCategory.name === 'Некатегоризирани') {
+                    console.log('%c[FilterManager] Избрана е категория "Некатегоризирани"', 'background: #3498db; color: white; padding: 2px 5px; border-radius: 3px;');
+                    
                     // Вземаме всички търговци без категория
                     const unassignedMerchants = await this.supabaseService.getUnassignedMerchants();
-                    merchantNames = unassignedMerchants.map(merchant => merchant.name);
-                } else if (selectedCategory.id) {
-                    // Извличаме всички търговци, принадлежащи към избраната категория
-                    merchantNames = await this.supabaseService.getMerchantsByCategory(selectedCategory.id);
+                    const unassignedMerchantNames = unassignedMerchants.map(m => m.name);
+                    
+                    console.log('%c[FilterManager] Некатегоризирани търговци:', 'background: #3498db; color: white; padding: 2px 5px; border-radius: 3px;', unassignedMerchantNames);
+                    
+                    // Филтрираме транзакциите, запазвайки само тези с некатегоризирани търговци
+                    filteredTransactions = filteredTransactions.filter(transaction => {
+                        return unassignedMerchantNames.includes(transaction.Description);
+                    });
+                } else {
+                    // Стандартна категория
+                    // Вземаме всички търговци в категорията
+                    const merchantNames = await this.supabaseService.getMerchantsByCategory(categoryId);
+                    
+                    console.log('%c[FilterManager] Търговци в категорията:', 'background: #3498db; color: white; padding: 2px 5px; border-radius: 3px;', merchantNames);
+                    
+                    // Филтрираме транзакциите, запазвайки само тези с търговци от избраната категория
+                    filteredTransactions = filteredTransactions.filter(transaction => {
+                        return merchantNames.includes(transaction.Description);
+                    });
                 }
-                
-                console.log('%c[FilterManager] Търговци в категорията:', 'background: #3498db; color: white; padding: 2px 5px; border-radius: 3px;', merchantNames);
-                
-                // Филтрираме транзакциите по имената на търговците от избраната категория
-                filteredTransactions = filteredTransactions.filter(transaction => {
-                    // Проверяваме дали името на търговеца (Description) е в списъка с търговци от категорията
-                    return merchantNames.includes(transaction.Description);
-                });
                 
                 console.log('%c[FilterManager] Брой транзакции след филтриране по категория:', 'background: #3498db; color: white; padding: 2px 5px; border-radius: 3px;', filteredTransactions.length);
                 
-                // Добавяме визуална индикация, че е приложен филтър по категория
+                // Показваме индикатор за филтриране по категория
                 const filterIndicator = document.getElementById('category-filter-indicator');
                 if (filterIndicator) {
-                    filterIndicator.textContent = `Филтър по категория: ${selectedCategory.name}`;
-                    filterIndicator.style.display = 'block';
-                    filterIndicator.style.backgroundColor = isUncategorized ? '#CCCCCC' : (selectedCategory.color || '#3498db');
+                    filterIndicator.style.display = 'flex';
+                    
+                    // Обновяваме текста и цвета на индикатора
+                    const categoryNameElement = filterIndicator.querySelector('.category-name');
+                    if (categoryNameElement && selectedCategory.name) {
+                        categoryNameElement.textContent = selectedCategory.name;
+                        
+                        // Ако има цвят, променяме го
+                        if (selectedCategory.color) {
+                            categoryNameElement.style.backgroundColor = selectedCategory.color;
+                            // Определяме контрастен цвят за текста
+                            categoryNameElement.style.color = this.getContrastColor(selectedCategory.color);
+                        }
+                    }
                 }
+            } 
+            // Ако има избрани търговци, приложи филтъра по търговци
+            else if (selectedMerchantNames && selectedMerchantNames.length > 0) {
+                specialFilterApplied = true;
+                console.log('%c[FilterManager] Филтриране по избрани търговци:', 'background: #3498db; color: white; padding: 2px 5px; border-radius: 3px;', selectedMerchantNames);
+                
+                // Филтрираме транзакциите, запазвайки само тези с избраните търговци
+                filteredTransactions = filteredTransactions.filter(transaction => {
+                    return selectedMerchantNames.includes(transaction.Description);
+                });
+                
+                console.log('%c[FilterManager] Брой транзакции след филтриране по търговци:', 'background: #3498db; color: white; padding: 2px 5px; border-radius: 3px;', filteredTransactions.length);
+            }
+            
+            // Проверка за възможни липсващи транзакции в обобщенията
+            if (specialFilterApplied) {
+                // Ако е приложен специален филтър (категория или търговци), използваме базовите филтрирани транзакции за подготовка на данни за графики
+                this.preparedChartData = this.dataUtils.prepareChartData(
+                    this.dataUtils.groupTransactionsByMerchant(filteredBeforeCategory)
+                );
             } else {
-                // Ако няма избрана категория, скриваме индикатора
-                const filterIndicator = document.getElementById('category-filter-indicator');
-                if (filterIndicator) {
-                    filterIndicator.style.display = 'none';
-                }
+                // Иначе използваме стандартните филтрирани транзакции
+                this.preparedChartData = null; // Нулираме данните за графики, за да се изчислят наново
             }
             
-            // Актуализираме филтрите с данни от транзакциите
-            this.populateFilters();
+            // Подготвяме данни със статистики за текущите транзакции
+            const transactionStats = this.dataUtils.calculateTransactionStats(filteredTransactions);
             
-            // Възстановяваме избрания тип транзакция след попълването на филтрите
-            if (selectedType && selectedType !== 'all') {
-                this.elements.transactionTypeSelect.value = selectedType;
-            }
-            
-            // Групираме транзакциите по търговци за останалите компоненти
-            const merchantsData = this.dataUtils.groupTransactionsByMerchant(filteredTransactions);
-            
-            // Изчисляваме статистики
-            const stats = this.dataUtils.calculateTransactionStats(filteredTransactions);
-            
-            // ВАЖНО: Добавяме броя транзакции в двата формата (count за консистентност)
-            stats.count = filteredTransactions.length;
-
-            // Данните са филтрирани успешно
-            
-            // Не обновяваме таблицата с транзакции тук, тъй като това се прави в DashboardView
-            // Това предотвратява дублиране на обновяването и загуба на слушателите за събития
-            
-            // Не обновяваме таблицата с търговци тук, тъй като това се прави в DashboardView
-            // Това предотвратява дублиране на обновяването и загуба на слушателите за събития
-            
-            // Премахваме прякото обновяване на DOM тук,
-            // защото вече използваме SummaryComponent в DashboardView
-            
-            // 4. Обновяваме графиката с топ търговци
-            this.updateChart(merchantsData);
-            
-            // Всички UI компоненти са обновени
-            
-            // Създаваме обект с резултатите
+            // Връщаме резултат с филтрираните транзакции и статистиките
             const result = {
-                success: true,
-                filteredTransactions,
-                filters,
-                merchantsData: this.preparedChartData || Object.entries(merchantsData)
-                    .map(([name, data]) => ({
-                        name: name.toString(), // Изрично превръщаме в текст
-                        totalAmount: Math.abs(data.totalAmount),
-                        count: data.count
-                    }))
-                    .sort((a, b) => b.totalAmount - a.totalAmount),
-                stats: {
-                    ...stats,
-                    // Явно задаваме броя транзакции и в двата формата, за да гарантираме работата
-                    totalTransactions: filteredTransactions.length,
-                    count: filteredTransactions.length
-                }
+                transactions: filteredTransactions,
+                stats: transactionStats
             };
             
-            // Извикваме callback функцията onFilterSuccess, ако е зададена
-            if (this.onFilterSuccess && typeof this.onFilterSuccess === 'function') {
+            // Известяваме за успешното филтриране
+            this.showNotification(`Данните са филтрирани успешно. Показани са ${filteredTransactions.length} транзакции.`);
+            
+            // Добавяме диагностичен лог за резултата
+            console.log('%c[FilterManager] Резултат от филтрирането:', 'background: #2ecc71; color: white; padding: 2px 5px; border-radius: 3px;', {
+                'Брой филтрирани транзакции': filteredTransactions.length,
+                'Статистики': transactionStats,
+                'Пример за транзакция': filteredTransactions.length > 0 ? filteredTransactions[0] : null
+            });
+            
+            // Извикваме callback функцията с резултата
+            if (this.onFilterSuccess) {
                 this.onFilterSuccess(result);
             }
             
-            // Връщаме резултатите
             return result;
-            
         } catch (error) {
-            console.error('Грешка при прилагане на филтри:', error);
-            this.showNotification('Възникна грешка при филтриране на данните.', 'error');
-            return {
-                success: false,
-                error: error.message
-            };
+            console.error('%c[FilterManager] Грешка при прилагане на филтри:', 'background: #c0392b; color: white; padding: 2px 5px; border-radius: 3px;', error);
+            this.showNotification(`Грешка при филтриране: ${error.message}`, 'error');
+            throw error;
         }
     }
     
@@ -472,18 +473,29 @@ class FilterManager {
     
     /**
      * Попълване на селектите за филтри
+     * @param {Array} transactions - Масив с транзакции (опционален)
      */
-    populateFilters() {
-        if (!this.allTransactions) return;
+    populateFilters(transactions = null) {
+        // Ако са предоставени транзакции като параметър, използваме тях
+        // В противен случай използваме локално съхранените транзакции
+        const transactionsToUse = transactions || this.allTransactions;
+        
+        // Проверка дали имаме транзакции
+        if (!transactionsToUse || transactionsToUse.length === 0) {
+            console.warn('%c[FilterManager] Няма транзакции за попълване на филтрите!', 'background: #e67e22; color: white; padding: 2px 5px; border-radius: 3px;');
+            return;
+        }
+        
+        console.log('%c[FilterManager] Попълване на филтри с', 'background: #3498db; color: white; padding: 2px 5px; border-radius: 3px;', transactionsToUse.length, 'транзакции');
         
         // Извличаме уникални валути
-        const currencies = this.dataUtils.getUniqueCurrencies(this.allTransactions);
+        const currencies = this.dataUtils.getUniqueCurrencies(transactionsToUse);
         
         // Попълваме селекта за валути
         this.populateSelect(this.elements.currencySelect, currencies, 'all', 'Всички');
         
         // Извличаме уникални типове транзакции
-        const types = this.dataUtils.getUniqueTransactionTypes(this.allTransactions);
+        const types = this.dataUtils.getUniqueTransactionTypes(transactionsToUse);
         
         // Попълваме селекта за типове транзакции
         this.populateSelect(this.elements.transactionTypeSelect, types, 'all', 'Всички');
@@ -623,5 +635,26 @@ class FilterManager {
         const { startDate, endDate } = DateUtils.getCurrentYearRange();
         
         this.setDateRange(startDate, endDate);
+    }
+    
+    /**
+     * Определя контрастен цвят спрямо фоновия цвят
+     * @param {string} bgColor - Фонов цвят в HEX формат
+     * @returns {string} Контрастен цвят за текст ("white" или "black")
+     */
+    getContrastColor(bgColor) {
+        // Премахваме # ако съществува
+        const color = bgColor.replace('#', '');
+        
+        // Конвертираме HEX в RGB
+        const r = parseInt(color.substr(0, 2), 16);
+        const g = parseInt(color.substr(2, 2), 16);
+        const b = parseInt(color.substr(4, 2), 16);
+        
+        // Изчисляваме яркостта (по формулата на W3C)
+        const brightness = (r * 299 + g * 587 + b * 114) / 1000;
+        
+        // Връщаме подходящ контрастен цвят
+        return brightness > 128 ? 'black' : 'white';
     }
 }

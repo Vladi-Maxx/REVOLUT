@@ -39,17 +39,23 @@ class SupabaseService {
      */
     async getAllTransactions() {
         try {
-
+            console.log('%c[SupabaseService] Извличане на всички транзакции...', 'background: #9b59b6; color: white; padding: 2px 5px; border-radius: 3px;');
             
             // Първо извличаме броя на всички записи
-            const { count } = await this.supabase
+            const { count, error: countError } = await this.supabase
                 .from(this.tableName)
                 .select('*', { count: 'exact', head: true });
             
-
+            if (countError) {
+                console.error('%c[SupabaseService] Грешка при извличане на брой транзакции:', 'background: #c0392b; color: white; padding: 2px 5px; border-radius: 3px;', countError);
+                throw new Error(`Грешка при извличане на брой транзакции: ${countError.message}`);
+            }
+            
+            console.log('%c[SupabaseService] Общ брой транзакции:', 'background: #9b59b6; color: white; padding: 2px 5px; border-radius: 3px;', count);
             
             // Ако няма записи, връщаме празен масив
             if (!count) {
+                console.warn('%c[SupabaseService] Няма намерени транзакции', 'background: #e67e22; color: white; padding: 2px 5px; border-radius: 3px;');
                 return [];
             }
             
@@ -57,7 +63,7 @@ class SupabaseService {
             const pageSize = 1000;
             const pages = Math.ceil(count / pageSize);
             
-
+            console.log('%c[SupabaseService] Извличане на данни на', 'background: #9b59b6; color: white; padding: 2px 5px; border-radius: 3px;', pages, 'страници по', pageSize, 'транзакции');
             
             // Масив за съхранение на всички транзакции
             let allTransactions = [];
@@ -65,34 +71,37 @@ class SupabaseService {
             // Извличаме всяка страница последователно
             for (let page = 0; page < pages; page++) {
                 const offset = page * pageSize;
-
+                console.log('%c[SupabaseService] Извличане на страница', 'background: #9b59b6; color: white; padding: 2px 5px; border-radius: 3px;', page + 1, 'от', pages);
                 
                 const { data, error } = await this.supabase
                     .from(this.tableName)
                     .select('*')
-                    .range(offset, offset + pageSize - 1);
+                    .range(offset, offset + pageSize - 1)
+                    .order('id', { ascending: true });
                 
                 if (error) {
-                    console.error(`Грешка при извличане на страница ${page + 1}:`, error);
-                    throw error;
+                    console.error('%c[SupabaseService] Грешка при извличане на страница', 'background: #c0392b; color: white; padding: 2px 5px; border-radius: 3px;', page + 1, ':', error);
+                    throw new Error(`Грешка при извличане на транзакции: ${error.message}`);
                 }
                 
-
-                
-                // Добавяме записите от текущата страница към общия масив
                 if (data && data.length > 0) {
+                    console.log('%c[SupabaseService] Извлечени', 'background: #9b59b6; color: white; padding: 2px 5px; border-radius: 3px;', data.length, 'транзакции на страница', page + 1);
                     allTransactions = [...allTransactions, ...data];
+                } else {
+                    console.warn('%c[SupabaseService] Няма данни на страница', 'background: #e67e22; color: white; padding: 2px 5px; border-radius: 3px;', page + 1);
                 }
             }
             
-
+            console.log('%c[SupabaseService] Общо извлечени транзакции:', 'background: #2ecc71; color: white; padding: 2px 5px; border-radius: 3px;', allTransactions.length);
             
-            // Дебъг информация за първата транзакция
-
+            // Проверка дали имаме поне една транзакция
+            if (allTransactions.length > 0) {
+                console.log('%c[SupabaseService] Пример за първа транзакция:', 'background: #2ecc71; color: white; padding: 2px 5px; border-radius: 3px;', allTransactions[0]);
+            }
             
             return allTransactions;
         } catch (error) {
-            console.error('Грешка при извличане на транзакции:', error);
+            console.error('%c[SupabaseService] Грешка при извличане на всички транзакции:', 'background: #c0392b; color: white; padding: 2px 5px; border-radius: 3px;', error);
             throw error;
         }
     }

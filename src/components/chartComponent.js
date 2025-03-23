@@ -161,8 +161,13 @@ class ChartComponent {
      * @param {Array} merchantsData - Данни за търговците
      */
     updateChart(merchantsData) {
+        console.log('%c[ChartComponent] Извикване на updateChart:', 'background: #2ecc71; color: white; padding: 2px 5px; border-radius: 3px;', {
+            'Получени данни': merchantsData,
+            'Брой елементи': merchantsData ? merchantsData.length : 0
+        });
+        
         if (!merchantsData || !Array.isArray(merchantsData)) {
-            console.error('ChartComponent: Няма валидни данни за обновяване на графиката');
+            console.error('%c[ChartComponent] Няма валидни данни за обновяване на графиката:', 'background: #e67e22; color: white; padding: 2px 5px; border-radius: 3px;', merchantsData);
             return;
         }
         

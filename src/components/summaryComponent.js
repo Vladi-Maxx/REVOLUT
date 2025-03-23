@@ -13,7 +13,12 @@ class SummaryComponent {
      * @param {Object} stats - Обект със статистики
      */
     updateSummary(stats) {
-        if (!stats) return;
+        console.log('%c[SummaryComponent] Извикване на updateSummary:', 'background: #2ecc71; color: white; padding: 2px 5px; border-radius: 3px;', stats);
+        
+        if (!stats) {
+            console.warn('%c[SummaryComponent] Невалидни статистики:', 'background: #e67e22; color: white; padding: 2px 5px; border-radius: 3px;', stats);
+            return;
+        }
 
         // Обновяваме елементите с данните
         this.totalTransactionsElement.textContent = stats.totalTransactions;

@@ -380,6 +380,35 @@ class CategoryChartComponent {
         // Връщаме подробна информация за категорията
         return categoryInfo;
     }
+    
+    /**
+     * Премахва избора на категория
+     */
+    unselectCategory() {
+        console.log('%c[CategoryChartComponent] Премахване на избор на категория', 'background: #3498db; color: white; padding: 2px 5px; border-radius: 3px;');
+        
+        // Нулираме избраната категория
+        this.selectedCategory = null;
+        this.selectedCategoryIndex = -1;
+        
+        // Ако имаме графика, премахваме подсветката от всички сегменти
+        if (this.chart) {
+            // Възстановяваме всички сегменти до техния оригинален вид
+            this.chart.data.datasets[0].backgroundColor = this.chart.data.datasets[0].originalBackgroundColor || this.chart.data.datasets[0].backgroundColor;
+            
+            // Премахваме offset на всички сегменти
+            this.chart.data.datasets[0].offset = Array(this.chart.data.labels.length).fill(0);
+            
+            // Обновяваме графиката
+            this.chart.update();
+        }
+        
+        // Скриваме индикатора за филтър по категория
+        const filterIndicator = document.getElementById('category-filter-indicator');
+        if (filterIndicator) {
+            filterIndicator.style.display = 'none';
+        }
+    }
 }
 
 // Експортиране на класа към глобалния обект

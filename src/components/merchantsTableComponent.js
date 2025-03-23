@@ -14,6 +14,15 @@ class MerchantsTableComponent {
         
         // Функция за обработка при избор на търговец
         this.onMerchantSelect = null;
+        
+        // Мениджър за избор на търговци
+        this.merchantSelectionManager = null;
+        
+        // Флаг, който показва дали се натиска клавиш Ctrl/Cmd
+        this.isCtrlPressed = false;
+        
+        // Добавяме слушател за клавиши
+        this.initKeyListeners();
     }
 
     /**
@@ -26,14 +35,43 @@ class MerchantsTableComponent {
             });
         });
     }
+    
+    /**
+     * Инициализиране на слушатели за клавиши (Ctrl/Cmd за множествен избор)
+     */
+    initKeyListeners() {
+        // Слушаме за натискане на клавиш Ctrl/Cmd
+        document.addEventListener('keydown', (e) => {
+            if (e.ctrlKey || e.metaKey) {
+                this.isCtrlPressed = true;
+            }
+        });
+        
+        // Слушаме за освобождаване на клавиш Ctrl/Cmd
+        document.addEventListener('keyup', (e) => {
+            if (e.key === 'Control' || e.key === 'Meta') {
+                this.isCtrlPressed = false;
+            }
+        });
+        
+        // Когато прозорецът загуби фокус, нулираме флага
+        window.addEventListener('blur', () => {
+            this.isCtrlPressed = false;
+        });
+    }
 
     /**
      * Обновяване на таблицата с данни
      * @param {Array} merchantsData - Данни за търговците
      */
     updateTable(merchantsData) {
+        console.log('%c[MerchantsTableComponent] Извикване на updateTable:', 'background: #2ecc71; color: white; padding: 2px 5px; border-radius: 3px;', {
+            'Получени данни': merchantsData,
+            'Брой елементи': merchantsData ? merchantsData.length : 0
+        });
+        
         if (!merchantsData || !Array.isArray(merchantsData)) {
-            console.warn('MerchantsTableComponent: невалидни данни');
+            console.warn('%c[MerchantsTableComponent] Невалидни данни:', 'background: #e67e22; color: white; padding: 2px 5px; border-radius: 3px;', merchantsData);
             return;
         }
         
@@ -47,6 +85,11 @@ class MerchantsTableComponent {
         merchantsData.forEach((merchant, index) => {
             const row = document.createElement('tr');
             
+            // Проверяваме дали търговецът е избран и добавяме подходящ клас
+            if (this.merchantSelectionManager && this.merchantSelectionManager.isMerchantSelected(merchant)) {
+                row.classList.add('selected-merchant');
+            }
+            
             // Създаваме клетките за реда
             row.innerHTML = `
                 <td><span class="transaction-description">${merchant.name}</span></td>
@@ -56,19 +99,26 @@ class MerchantsTableComponent {
             `;
             
             // Добавяме слушател за клик върху реда
-            row.addEventListener('click', () => {
-                if (this.onMerchantSelect) {
+            row.addEventListener('click', (e) => {
+                // Проверяваме дали се използва множествен избор (с натиснат Ctrl/Cmd)
+                if (this.merchantSelectionManager) {
+                    // Ако се натиска Ctrl/Cmd, превключваме избора на търговеца
+                    if (this.isCtrlPressed) {
+                        this.merchantSelectionManager.toggleMerchantSelection(merchant);
+                    } else {
+                        // Ако не се натиска Ctrl/Cmd, изчистваме избора и избираме само текущия
+                        this.merchantSelectionManager.clearSelectedMerchants();
+                        this.merchantSelectionManager.selectMerchant(merchant);
+                    }
+                } else if (this.onMerchantSelect) {
+                    // Ако не се използва MerchantSelectionManager, използваме стандартния подход
                     this.onMerchantSelect(merchant);
                 }
             });
             
             // Добавяме реда към таблицата
             this.tableBodyElement.appendChild(row);
-            
-
         });
-        
-
     }
 
     /**
@@ -116,5 +166,15 @@ class MerchantsTableComponent {
      */
     setOnMerchantSelectListener(callback) {
         this.onMerchantSelect = callback;
+    }
+    
+    /**
+     * Свързване на MerchantSelectionManager с таблицата
+     * @param {Object} merchantSelectionManager - Инстанция на MerchantSelectionManager
+     */
+    setMerchantSelectionManager(merchantSelectionManager) {
+        if (!merchantSelectionManager) return;
+        
+        this.merchantSelectionManager = merchantSelectionManager;
     }
 }

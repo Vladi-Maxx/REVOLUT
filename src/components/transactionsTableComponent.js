@@ -12,7 +12,15 @@ class TransactionsTableComponent {
      * @param {Array} transactions - Масив с транзакции
      */
     updateTable(transactions) {
-        if (!transactions || !Array.isArray(transactions)) return;
+        console.log('%c[TransactionsTableComponent] Извикване на updateTable:', 'background: #2ecc71; color: white; padding: 2px 5px; border-radius: 3px;', {
+            'Получени данни': transactions,
+            'Брой елементи': transactions ? transactions.length : 0
+        });
+        
+        if (!transactions || !Array.isArray(transactions)) {
+            console.warn('%c[TransactionsTableComponent] Невалидни данни:', 'background: #e67e22; color: white; padding: 2px 5px; border-radius: 3px;', transactions);
+            return;
+        }
         
         // Изчистваме таблицата
         this.tableBodyElement.innerHTML = '';

@@ -18,25 +18,27 @@ class DashboardView {
             'categories-chart': categoriesChartElement
         });
         
-        // Създаваме и инициализираме компоненти
-        this.transactionsTableComponent = new TransactionsTableComponent(this);
-        this.summaryComponent = new SummaryComponent();
-        this.merchantsTableComponent = new MerchantsTableComponent(this);
-        this.chartComponent = new ChartComponent();
-        this.categoryChartComponent = new CategoryChartComponent();
-        
-        // Запазваме глобална референция към categoryChartComponent за ползване от FilterManager
-        window.categoryChartComponent = this.categoryChartComponent;
-        
-        // Инициализираме филтъра
-        this.initFilters();
-        
         // Инициализиране на елементите за филтриране
         this.startDateInput = document.getElementById('start-date');
         this.endDateInput = document.getElementById('end-date');
         this.currencySelect = document.getElementById('currency');
         this.transactionTypeSelect = document.getElementById('transaction-type');
         this.applyFiltersButton = document.getElementById('apply-filters');
+        
+        // Инициализиране на елементите за бързи филтри
+        this.lastWeekButton = document.getElementById('last-week');
+        this.currentMonthButton = document.getElementById('current-month');
+        this.lastMonthButton = document.getElementById('last-month');
+        this.currentYearButton = document.getElementById('current-year');
+        
+        // Инициализираме компонентите в правилния ред
+        this.initComponents();
+        
+        // Инициализираме филтъра
+        this.initFilters();
+        
+        // Добавяме индикатор за филтъра по категория
+        this.createCategoryFilterIndicator();
         
         // Инициализиране на CSV импортера
         this.csvImporter = new CsvImporter({
@@ -46,136 +48,165 @@ class DashboardView {
             onImportSuccess: this.loadData.bind(this)
         });
         
-        // Инициализиране на елементите за бързи филтри
-        this.lastWeekButton = document.getElementById('last-week');
-        this.currentMonthButton = document.getElementById('current-month');
-        this.lastMonthButton = document.getElementById('last-month');
-        this.currentYearButton = document.getElementById('current-year');
-        
-        // Инициализиране на Filter Manager-а
-        this.filterManager = new FilterManager({
-            elements: {
-                startDateInput: this.startDateInput,
-                endDateInput: this.endDateInput,
-                currencySelect: this.currencySelect,
-                transactionTypeSelect: this.transactionTypeSelect,
-                applyFiltersButton: this.applyFiltersButton
-            },
-            supabaseService: this.supabaseService,
-            dataUtils: DataUtils,
-            notificationCallback: this.showNotification.bind(this),
-            onFilterSuccess: async (result) => {
-                // Обновяваме графиката и summary панелите, без да извикваме отново applyFilters
-                if (result && result.success) {
-                    // 1. Обновяваме summary панелите
-                    if (result.stats) {
-                        this.summaryComponent.updateSummary(result.stats);
-                    }
-                    
-                    // 2. Обновяваме таблицата с търговци
-                    if (result.filteredTransactions && result.filteredTransactions.length > 0) {
-                        const merchantsData = DataUtils.groupTransactionsByMerchant(result.filteredTransactions);
-                        this.merchantsTableComponent.updateTable(merchantsData);
-                    }
-                    
-                    // 3. Подготовка на данни за графиката на търговци
-                    let chartData = [];
-                    
-                    // Използваме подготвените данни от FilterManager
-                    if (result.merchantsData && result.merchantsData.length > 0) {
-                        chartData = result.merchantsData;
-                    }
-                    
-                    // Обновяваме графиката за търговци
-                    if (chartData && chartData.length > 0) {
-                        this.chartComponent.updateChart(chartData);
-                    }
-                    
-                    // 4. Обновяваме графиката за категории
-                    if (result.filteredTransactions && result.filteredTransactions.length > 0) {
-                        // Вземаме всички категории
-                        const categories = await this.supabaseService.getAllCategories();
-                        
-                        // Вземаме мапинга между търговци и категории
-                        const merchantCategoryMapping = await this.supabaseService.getMerchantCategoryMapping();
-                        
-                        // Добавяме category_id към всяка транзакция
-                        result.filteredTransactions.forEach(transaction => {
-                            const merchantName = transaction.Description;
-                            transaction.category_id = merchantCategoryMapping[merchantName] || null;
-                        });
-                        
-                        // Подготовка на данни за графиката на категории
-                        const categoryData = DataUtils.groupTransactionsByCategory(result.filteredTransactions, categories);
-                        
-                        // Обновяваме графиката за категории
-                        if (categoryData && categoryData.length > 0) {
-                            this.categoryChartComponent.updateChart(categoryData);
-                        }
-                    }
-                }
-            }
-        });
-        
-        // Инициализиране на QuickFilterManager-а
-        this.quickFilterManager = new QuickFilterManager({
-            elements: {
-                lastWeekButton: this.lastWeekButton,
-                currentMonthButton: this.currentMonthButton,
-                lastMonthButton: this.lastMonthButton,
-                currentYearButton: this.currentYearButton
-            },
-            filterManager: this.filterManager,
-            // Свързваме callback функцията с правилния контекст (this)
-            applyFiltersCallback: () => this.applyFilters()
-        });
-        
-        // Инициализиране на филтрите
-        this.filterManager.initFilters();
-        
-        // Добавяне на слушатели за събития
+        // Слушатели за събития
         this.addEventListeners();
         
-        // Съхраняваме текущо филтрираните транзакции
-        this.filteredTransactions = [];
+        // Зареждане на данни
+        this.loadData();
     }
 
     /**
-     * Инициализиране на филтрите
+     * Инициализиране на компонентите
      */
-    initFilters() {
-        // Инициализиране на елементите за избор на дати
-        this.startDateInput = document.getElementById('start-date');
-        this.endDateInput = document.getElementById('end-date');
-        this.startDateDisplay = document.getElementById('start-date-display');
-        this.endDateDisplay = document.getElementById('end-date-display');
+    initComponents() {
+        // Инициализираме компонента за таблицата с търговци
+        this.merchantsTableComponent = new MerchantsTableComponent();
         
-        // Проверяваме дали елементите съществуват преди да продължим
-        if (!this.startDateInput || !this.endDateInput) {
-            console.warn('%c[DashboardView] Липсват елементите за избор на дати, пропускаме инициализацията на филтрите', 'background: #f39c12; color: white; padding: 2px 5px; border-radius: 3px;');
+        // Инициализираме компонента за таблицата с транзакции
+        this.transactionsTableComponent = new TransactionsTableComponent();
+        
+        // Инициализираме компонента за графиката за топ търговци
+        this.chartComponent = new ChartComponent();
+        
+        // Инициализираме компонента за графиката за категории
+        this.categoryChartComponent = new CategoryChartComponent();
+        window.categoryChartComponent = this.categoryChartComponent; // за достъп от FilterManager
+        
+        // Инициализираме компонента за сумарни стойности
+        this.summaryComponent = new SummaryComponent();
+        
+        // Не инициализираме MerchantSelectionManager тук, 
+        // това ще стане след инициализацията на filterManager в initFilters
+    }
+    
+    /**
+     * Инициализира мениджъра за избор на търговци
+     */
+    initMerchantSelectionManager() {
+        console.log('%c[DashboardView] Инициализиране на MerchantSelectionManager', 'background: #9b59b6; color: white; padding: 2px 5px; border-radius: 3px;');
+        
+        // Проверяваме дали имаме инициализиран FilterManager
+        if (!this.filterManager) {
+            console.error('%c[DashboardView] Грешка при инициализиране на MerchantSelectionManager: FilterManager не е инициализиран', 'background: #c0392b; color: white; padding: 2px 5px; border-radius: 3px;');
             return;
         }
         
-        // Други елементи на филтъра
-        this.currencySelect = document.getElementById('currency');
-        this.transactionTypeSelect = document.getElementById('transaction-type');
-        this.applyFiltersButton = document.getElementById('apply-filters');
+        // Създаваме нова инстанция на MerchantSelectionManager
+        this.merchantSelectionManager = new MerchantSelectionManager({
+            supabaseService: this.supabaseService,
+            filterManager: this.filterManager,
+            onFilterApplied: (result) => this.handleFilterResult(result)
+        });
         
-        // Задаване на начални стойности за датите с използване на DateUtils
-        const { startDate, endDate } = DateUtils.getLastMonthRange();
+        // Свързваме го с компонента за таблицата с търговци
+        if (this.merchantsTableComponent) {
+            console.log('%c[DashboardView] Свързване на MerchantSelectionManager с таблицата за търговци', 'background: #9b59b6; color: white; padding: 2px 5px; border-radius: 3px;');
+            this.merchantsTableComponent.setMerchantSelectionManager(this.merchantSelectionManager);
+        } else {
+            console.error('%c[DashboardView] Грешка при свързване на MerchantSelectionManager: MerchantsTableComponent не е инициализиран', 'background: #c0392b; color: white; padding: 2px 5px; border-radius: 3px;');
+        }
+    }
+    
+    /**
+     * Създава индикатор за филтъра по категория
+     */
+    createCategoryFilterIndicator() {
+        // Проверяваме дали вече съществува
+        let categoryIndicator = document.getElementById('category-filter-indicator');
         
-        // Задаваме стойности на date полетата
-        this.startDateInput.value = DateUtils.formatDateForDateInput(startDate);
-        this.endDateInput.value = DateUtils.formatDateForDateInput(endDate);
-        
-        // Задаваме стойности на видимите текстови полета само ако те съществуват
-        if (this.startDateDisplay) {
-            this.startDateDisplay.value = DataUtils.formatDate(startDate);
+        if (!categoryIndicator) {
+            // Създаваме контейнер за филтри, ако не съществува
+            let filtersContainer = document.querySelector('.filters-container');
+            if (!filtersContainer) {
+                filtersContainer = document.createElement('div');
+                filtersContainer.className = 'filters-container';
+                
+                // Намираме елемента, след който да добавим контейнера за филтри
+                const filtersSection = document.querySelector('.filters-section');
+                if (filtersSection) {
+                    filtersSection.appendChild(filtersContainer);
+                }
+            }
+            
+            // Създаваме индикатора като div
+            categoryIndicator = document.createElement('div');
+            categoryIndicator.id = 'category-filter-indicator';
+            categoryIndicator.className = 'filter-indicators';
+            categoryIndicator.style.display = 'none';
+            
+            // Добавяме етикет
+            const label = document.createElement('span');
+            label.className = 'filter-indicator-label';
+            label.textContent = 'Филтър по категория:';
+            
+            // Добавяме елемент за името на категорията
+            const categoryName = document.createElement('div');
+            categoryName.className = 'filter-indicator category-name';
+            
+            // Добавяме бутон за затваряне
+            const closeButton = document.createElement('button');
+            closeButton.className = 'close-indicator';
+            closeButton.innerHTML = '&times;';
+            closeButton.title = 'Премахни филтър';
+            
+            // Добавяме слушател за бутона за затваряне
+            closeButton.addEventListener('click', () => {
+                // Извикваме функцията за избор на категория с null
+                if (this.categoryChartComponent) {
+                    this.categoryChartComponent.unselectCategory();
+                    this.onCategorySelect(null);
+                }
+            });
+            
+            // Добавяме елементите към индикатора
+            categoryIndicator.appendChild(label);
+            categoryIndicator.appendChild(categoryName);
+            categoryIndicator.appendChild(closeButton);
+            
+            // Добавяме индикатора към контейнера за филтри
+            filtersContainer.appendChild(categoryIndicator);
         }
         
-        if (this.endDateDisplay) {
-            this.endDateDisplay.value = DataUtils.formatDate(endDate);
+        return categoryIndicator;
+    }
+
+    /**
+     * Инициализация на филтрите
+     */
+    initFilters() {
+        console.log('%c[DashboardView] Инициализиране на филтри', 'background: #9b59b6; color: white; padding: 2px 5px; border-radius: 3px;');
+        
+        // Намираме елементите на интерфейса за филтриране
+        const elements = {
+            startDateInput: document.getElementById('start-date'),
+            endDateInput: document.getElementById('end-date'),
+            currencySelect: document.getElementById('currency'),
+            transactionTypeSelect: document.getElementById('transaction-type'),
+            applyFiltersButton: document.getElementById('apply-filters')
+        };
+        
+        // Инициализираме FilterManager
+        this.filterManager = new FilterManager({
+            elements: elements,
+            supabaseService: this.supabaseService,
+            dataUtils: DataUtils,
+            notificationCallback: (message, type) => this.showNotification(message, type),
+            onFilterSuccess: (result) => this.handleFilterResult(result)
+        });
+        
+        // Инициализираме филтрите
+        this.filterManager.initFilters();
+        
+        // Задаваме callback за избор на категория
+        if (this.categoryChartComponent) {
+            console.log('%c[DashboardView] Задаване на callback за избор на категория', 'background: #9b59b6; color: white; padding: 2px 5px; border-radius: 3px;');
+            this.categoryChartComponent.setOnCategorySelectCallback((category) => {
+                this.onCategorySelect(category);
+            });
         }
+        
+        // Инициализираме MerchantSelectionManager
+        this.initMerchantSelectionManager();
     }
 
     /**
@@ -243,16 +274,17 @@ class DashboardView {
             this.showLoadingMessage();
             
             // Извличаме всички транзакции
-            const transactions = await supabaseService.getAllTransactions();
+            const transactions = await this.supabaseService.getAllTransactions();
             
-            // Дебъг информация
-            // Зареждане на транзакции
-            if (transactions && transactions.length > 0) {
-
-            }
+            // Дебъг информация за заредените транзакции
+            console.log('%c[DashboardView] Заредени транзакции:', 'background: #3498db; color: white; padding: 2px 5px; border-radius: 3px;', {
+                'Брой транзакции': transactions ? transactions.length : 0,
+                'Пример за транзакция': transactions && transactions.length > 0 ? transactions[0] : null
+            });
             
             // Ако няма транзакции, показваме съобщение
             if (!transactions || transactions.length === 0) {
+                console.log('%c[DashboardView] Няма заредени транзакции!', 'background: #e74c3c; color: white; padding: 2px 5px; border-radius: 3px;');
                 this.showNoDataMessage();
                 return;
             }
@@ -261,13 +293,19 @@ class DashboardView {
             this.allTransactions = transactions;
             
             // Попълваме селектите за валута и тип транзакция
-            this.filterManager.populateFilters(this.allTransactions);
+            if (this.filterManager) {
+                console.log('%c[DashboardView] Попълване на селекти за филтри', 'background: #3498db; color: white; padding: 2px 5px; border-radius: 3px;');
+                this.filterManager.populateFilters(this.allTransactions);
+            } else {
+                console.error('%c[DashboardView] FilterManager не е инициализиран!', 'background: #e74c3c; color: white; padding: 2px 5px; border-radius: 3px;');
+            }
             
             // Прилагаме филтрите
+            console.log('%c[DashboardView] Първоначално прилагане на филтри', 'background: #3498db; color: white; padding: 2px 5px; border-radius: 3px;');
             this.applyFilters();
             
         } catch (error) {
-            console.error('Грешка при зареждане на данни:', error);
+            console.error('%c[DashboardView] Грешка при зареждане на данни:', 'background: #c0392b; color: white; padding: 2px 5px; border-radius: 3px;', error);
             this.showErrorMessage('Възникна грешка при зареждане на данните.');
         }
     }
@@ -277,111 +315,24 @@ class DashboardView {
      */
     async applyFilters() {
         try {
-            // Показваме съобщение за зареждане
-            this.showLoadingMessage();
+            console.log('%c[DashboardView] Прилагане на филтри', 'background: #3498db; color: white; padding: 2px 5px; border-radius: 3px;');
             
-            // Използваме филтър мениджъра за прилагане на филтрите
-            const result = await this.filterManager.applyFilters(this.allTransactions);
-            
-            // Ако има грешка, показваме съобщение и прекратяваме
-            if (!result.success) {
-                this.showErrorMessage('Възникна грешка при филтриране на данните: ' + result.error);
+            // Проверяваме дали имаме инициализиран FilterManager
+            if (!this.filterManager) {
+                console.error('%c[DashboardView] Няма инициализиран FilterManager', 'background: #c0392b; color: white; padding: 2px 5px; border-radius: 3px;');
                 return;
             }
             
-            // Извличаме филтрираните транзакции от резултата
-            const filteredTransactions = result.filteredTransactions;
-            
-            // Запазваме филтрираните транзакции за използване при филтриране по категория
-            this.filteredTransactions = filteredTransactions;
-            
-            // Ако няма транзакции, показваме съобщение
-            if (!filteredTransactions || filteredTransactions.length === 0) {
-                this.showNoDataMessage();
-                return;
+            // Проверяваме дали имаме инициализиран MerchantSelectionManager и избрани търговци
+            let selectedMerchantNames = null;
+            if (this.merchantSelectionManager && this.merchantSelectionManager.getSelectedMerchantNames().length > 0) {
+                selectedMerchantNames = this.merchantSelectionManager.getSelectedMerchantNames();
+                console.log('%c[DashboardView] Избрани търговци за филтриране:', 'background: #3498db; color: white; padding: 2px 5px; border-radius: 3px;', selectedMerchantNames);
             }
             
-            // Групираме транзакциите по търговци
-            const merchantsData = DataUtils.groupTransactionsByMerchant(filteredTransactions);
-            
-            // Проверяваме DOM елементите на таблиците
-            const merchantsTableBody = document.getElementById('merchants-table-body');
-            const transactionsTableBody = document.getElementById('transactions-table-body');
-            
-            // Проверка на DOM елементи
-            
-            // Пряко обновяване на таблицата с транзакции, ако елементът съществува
-            if (transactionsTableBody) {
-                // Изчистваме таблицата
-                transactionsTableBody.innerHTML = '';
-                
-
-                
-                // Вместо директно да добавяме редове, използваме компонента за транзакции
-                // Това ще гарантира, че слушателите за събития се добавят правилно
-                this.transactionsTableComponent.updateTable(filteredTransactions);
-                
-                // Не е нужно да добавяме редове ръчно, тъй като компонентът вече се грижи за това
-                
-                // Таблицата с транзакции е обновена успешно
-            }
-            
-            // Обновяваме компонентите чрез стандартния механизъм
-            // Подготовка на данните за сумари компонент
-            
-            // Обновяваме всички компоненти с филтрираните данни
-            this.summaryComponent.updateSummary(result.stats);
-            this.merchantsTableComponent.updateTable(merchantsData);
-            this.transactionsTableComponent.updateTable(filteredTransactions);
-            
-            // Подготовка на данни за графиката на търговци
-            let chartData = [];
-            
-            // Използваме подготвените данни от FilterManager, ако са налични
-            if (this.filterManager && this.filterManager.preparedChartData && this.filterManager.preparedChartData.length > 0) {
-                chartData = this.filterManager.preparedChartData;
-            } else {
-                // Ако нямаме данни от FilterManager, използваме DataUtils.prepareChartData
-                chartData = DataUtils.prepareChartData(merchantsData);
-            }
-            
-            // Обновяваме графиката за търговци
-            if (chartData && chartData.length > 0) {
-                this.chartComponent.updateChart(chartData);
-            } else {
-                console.warn('DashboardView: Няма валидни данни за графиката на търговци');
-            }
-            
-            // Вземаме всички категории
-            console.log('%c[DashboardView] Извличане на категории', 'background: #9b59b6; color: white; padding: 2px 5px; border-radius: 3px;');
-            const categories = await this.supabaseService.getAllCategories();
-            console.log('%c[DashboardView] Получени категории:', 'background: #9b59b6; color: white; padding: 2px 5px; border-radius: 3px;', categories);
-            
-            // Вземаме мапинга между търговци и категории
-            console.log('%c[DashboardView] Извличане на мапинг между търговци и категории', 'background: #9b59b6; color: white; padding: 2px 5px; border-radius: 3px;');
-            const merchantCategoryMapping = await this.supabaseService.getMerchantCategoryMapping();
-            
-            // Добавяме category_id към всяка транзакция
-            filteredTransactions.forEach(transaction => {
-                const merchantName = transaction.Description;
-                transaction.category_id = merchantCategoryMapping[merchantName] || null;
-            });
-            
-            // Подготовка на данни за графиката на категории
-            console.log('%c[DashboardView] Групиране на транзакции по категории', 'background: #e74c3c; color: white; padding: 2px 5px; border-radius: 3px;', {
-                'Брой филтрирани транзакции': filteredTransactions.length,
-                'Брой категории': categories.length
-            });
-            const categoryData = DataUtils.groupTransactionsByCategory(filteredTransactions, categories);
-            console.log('%c[DashboardView] Резултат от групирането по категории:', 'background: #e74c3c; color: white; padding: 2px 5px; border-radius: 3px;', categoryData);
-            
-            // Обновяваме графиката за категории
-            if (categoryData && categoryData.length > 0) {
-                console.log('%c[DashboardView] Обновяване на графиката за категории', 'background: #2ecc71; color: white; padding: 2px 5px; border-radius: 3px;');
-                this.categoryChartComponent.updateChart(categoryData);
-            } else {
-                console.warn('%c[DashboardView] Няма валидни данни за графиката на категории', 'background: #f39c12; color: white; padding: 2px 5px; border-radius: 3px;');
-            }
+            // Извикваме метода за прилагане на филтри на FilterManager
+            // с всички транзакции в кеш (ако има) и избраните търговци (ако има)
+            await this.filterManager.applyFilters(this.allTransactions || null, selectedMerchantNames);
             
         } catch (error) {
             console.error('%c[DashboardView] Грешка при прилагане на филтри:', 'background: #c0392b; color: white; padding: 2px 5px; border-radius: 3px;', error);
@@ -540,6 +491,129 @@ class DashboardView {
     }
 
     /**
+     * Обработка на резултата от филтрирането
+     * @param {Object} result - Резултат от филтрирането
+     */
+    handleFilterResult(result) {
+        if (!result || !result.transactions) {
+            console.error('%c[DashboardView] Невалиден резултат от филтрирането', 'background: #e74c3c; color: white; padding: 2px 5px; border-radius: 3px;');
+            return;
+        }
+        
+        try {
+            const filteredTransactions = result.transactions;
+            
+            console.log('%c[DashboardView] Обработка на резултат от филтриране:', 'background: #3498db; color: white; padding: 2px 5px; border-radius: 3px;', {
+                'Брой транзакции': filteredTransactions.length,
+                'Статистики': result.stats,
+                'Пример за транзакция': filteredTransactions.length > 0 ? filteredTransactions[0] : null
+            });
+            
+            // Проверяваме дали има транзакции
+            if (!filteredTransactions.length) {
+                console.log('%c[DashboardView] Няма транзакции след филтриране!', 'background: #e74c3c; color: white; padding: 2px 5px; border-radius: 3px;');
+                this.showNoDataMessage();
+                return;
+            }
+            
+            // Групираме транзакциите по търговци
+            const merchantsData = DataUtils.groupTransactionsByMerchant(filteredTransactions);
+            console.log('%c[DashboardView] Групирани данни по търговци:', 'background: #2ecc71; color: white; padding: 2px 5px; border-radius: 3px;', {
+                'Брой групи': merchantsData.length,
+                'Пример за група': merchantsData.length > 0 ? merchantsData[0] : null
+            });
+            
+            // Обновяваме компонентите с филтрираните данни
+            console.log('%c[DashboardView] Обновяване на компоненти с филтрирани данни', 'background: #3498db; color: white; padding: 2px 5px; border-radius: 3px;');
+            
+            if (this.summaryComponent) {
+                console.log('%c[DashboardView] Обновяване на summaryComponent', 'background: #3498db; color: white; padding: 2px 5px; border-radius: 3px;');
+                this.summaryComponent.updateSummary(result.stats);
+            } else {
+                console.error('%c[DashboardView] summaryComponent не е инициализиран!', 'background: #e74c3c; color: white; padding: 2px 5px; border-radius: 3px;');
+            }
+            
+            if (this.merchantsTableComponent) {
+                console.log('%c[DashboardView] Обновяване на merchantsTableComponent', 'background: #3498db; color: white; padding: 2px 5px; border-radius: 3px;');
+                this.merchantsTableComponent.updateTable(merchantsData);
+            } else {
+                console.error('%c[DashboardView] merchantsTableComponent не е инициализиран!', 'background: #e74c3c; color: white; padding: 2px 5px; border-radius: 3px;');
+            }
+            
+            if (this.transactionsTableComponent) {
+                console.log('%c[DashboardView] Обновяване на transactionsTableComponent', 'background: #3498db; color: white; padding: 2px 5px; border-radius: 3px;');
+                this.transactionsTableComponent.updateTable(filteredTransactions);
+            } else {
+                console.error('%c[DashboardView] transactionsTableComponent не е инициализиран!', 'background: #e74c3c; color: white; padding: 2px 5px; border-radius: 3px;');
+            }
+            
+            // Подготовка на данни за графиката на търговци
+            let chartData = [];
+            
+            // Използваме подготвените данни от FilterManager, ако са налични
+            if (this.filterManager && this.filterManager.preparedChartData && this.filterManager.preparedChartData.length > 0) {
+                chartData = this.filterManager.preparedChartData;
+            } else {
+                // Ако нямаме данни от FilterManager, използваме DataUtils.prepareChartData
+                chartData = DataUtils.prepareChartData(merchantsData);
+            }
+            
+            // Обновяваме графиката за търговци
+            if (chartData && chartData.length > 0) {
+                this.chartComponent.updateChart(chartData);
+            } else {
+                console.warn('%c[DashboardView] Няма валидни данни за графиката на търговци', 'background: #e67e22; color: white; padding: 2px 5px; border-radius: 3px;');
+            }
+            
+            // Подготовка на данни за графиката за категории
+            this.updateCategoryChart(filteredTransactions);
+            
+        } catch (error) {
+            console.error('%c[DashboardView] Грешка при обработка на резултата от филтрирането:', 'background: #c0392b; color: white; padding: 2px 5px; border-radius: 3px;', error);
+            this.showErrorMessage('Възникна грешка при обработка на филтрираните данни.');
+        }
+    }
+
+    /**
+     * Обновява графиката за категории с филтрираните транзакции
+     * @param {Array} filteredTransactions - Филтрирани транзакции
+     */
+    async updateCategoryChart(filteredTransactions) {
+        try {
+            // Вземаме всички категории
+            console.log('%c[DashboardView] Извличане на категории', 'background: #9b59b6; color: white; padding: 2px 5px; border-radius: 3px;');
+            const categories = await this.supabaseService.getAllCategories();
+            
+            // Вземаме мапинга между търговци и категории
+            console.log('%c[DashboardView] Извличане на мапинг между търговци и категории', 'background: #9b59b6; color: white; padding: 2px 5px; border-radius: 3px;');
+            const merchantCategoryMapping = await this.supabaseService.getMerchantCategoryMapping();
+            
+            // Добавяме category_id към всяка транзакция
+            filteredTransactions.forEach(transaction => {
+                const merchantName = transaction.Description;
+                transaction.category_id = merchantCategoryMapping[merchantName] || null;
+            });
+            
+            // Групиране на транзакции по категории
+            console.log('%c[DashboardView] Групиране на транзакции по категории', 'background: #e74c3c; color: white; padding: 2px 5px; border-radius: 3px;', {
+                'Брой филтрирани транзакции': filteredTransactions.length,
+                'Брой категории': categories.length
+            });
+            const categoryData = DataUtils.groupTransactionsByCategory(filteredTransactions, categories);
+            
+            // Обновяваме графиката за категории
+            if (categoryData && categoryData.length > 0) {
+                console.log('%c[DashboardView] Обновяване на графиката за категории', 'background: #2ecc71; color: white; padding: 2px 5px; border-radius: 3px;');
+                this.categoryChartComponent.updateChart(categoryData);
+            } else {
+                console.warn('%c[DashboardView] Няма валидни данни за графиката на категории', 'background: #f39c12; color: white; padding: 2px 5px; border-radius: 3px;');
+            }
+        } catch (error) {
+            console.error('%c[DashboardView] Грешка при обновяване на графиката за категории:', 'background: #c0392b; color: white; padding: 2px 5px; border-radius: 3px;', error);
+        }
+    }
+
+    /**
      * Показване на съобщение за зареждане
      */
     showLoadingMessage() {
@@ -564,12 +638,6 @@ class DashboardView {
         console.error(message);
     }
 
-
-    
-
-    
-
-    
     /**
      * Изтриване на транзакция
      * @param {string} transactionId - ID на транзакцията за изтриване
@@ -626,12 +694,6 @@ class DashboardView {
         }
     }
 
-
-    
-
-    
-
-    
     /**
      * Показване на известие на потребителя
      * @param {string} message - Съобщение за показване
