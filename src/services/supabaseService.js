@@ -3,6 +3,9 @@
  */
 let supabaseInstance = null;
 
+// Импортиране на конфигурационния файл
+import config from '../config.js';
+
 /**
  * Функция за инициализиране на Supabase клиента
  * @returns {Object} Инстанция на Supabase клиента
@@ -12,8 +15,9 @@ function initSupabase() {
         return supabaseInstance;
     }
     
-    const supabaseUrl = 'https://reuuohlmseejmakhxide.supabase.co';
-    const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJldXVvaGxtc2Vlam1ha2h4aWRlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDIxMDU0MTIsImV4cCI6MjA1NzY4MTQxMn0.L0hipLSxu3mtlMcJ8Tk7OsDmvJzjvfGbYsfNVncPOvo';
+    // Използваме ключовете от конфигурационния файл
+    const supabaseUrl = config.supabaseUrl;
+    const supabaseKey = config.supabaseKey;
     supabaseInstance = supabase.createClient(supabaseUrl, supabaseKey);
     
     return supabaseInstance;
@@ -22,7 +26,7 @@ function initSupabase() {
 /**
  * Услуга за връзка със Supabase и извличане на данни за транзакции
  */
-class SupabaseService {
+export class SupabaseService {
     constructor() {
         // Използваме глобалната инстанция на Supabase клиента
         this.supabase = initSupabase();
@@ -857,3 +861,4 @@ class SupabaseService {
 
 // Създаване на инстанция на услугата
 const supabaseService = new SupabaseService();
+export default supabaseService;

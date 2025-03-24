@@ -2,6 +2,10 @@
  * Главен файл на приложението
  */
 
+// Импортиране на необходимите компоненти и услуги
+import { SupabaseService } from './services/supabaseService.js';
+import supabaseService from './services/supabaseService.js';
+
 // Изчакваме зареждането на DOM
 document.addEventListener('DOMContentLoaded', async () => {
     console.log('%c[App] DOM зареден', 'background: #2ecc71; color: white; padding: 2px 5px; border-radius: 3px;');
@@ -31,8 +35,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     }
     
-    // Създаваме глобална инстанция на SupabaseService
-    window.supabaseService = new SupabaseService();
+    // Запазваме глобална инстанция на SupabaseService
+    window.supabaseService = supabaseService;
     
     // Инициализираме управлението на табове
     const tabsManager = new TabsManager();

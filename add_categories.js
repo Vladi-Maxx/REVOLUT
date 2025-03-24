@@ -1,10 +1,18 @@
 /**
  * Скрипт за добавяне на примерни категории в базата данни Supabase
+ * 
+ * ВНИМАНИЕ: За да използвате този скрипт, първо трябва да създадете файл src/config.js
+ * с правилните ключове за Supabase. Този файл не трябва да се качва в Git хранилището.
+ * За да се използва този скрипт като модул, добавете атрибут type="module" към тага script, 
+ * например: <script src="add_categories.js" type="module"></script>
  */
 
-// Инициализираме Supabase клиент
-const supabaseUrl = 'https://reuuohlmseejmakhxide.supabase.co';
-const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJldXVvaGxtc2Vlam1ha2h4aWRlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDIxMDU0MTIsImV4cCI6MjA1NzY4MTQxMn0.L0hipLSxu3mtlMcJ8Tk7OsDmvJzjvfGbYsfNVncPOvo';
+// Импортираме конфигурационните настройки
+import config from './src/config.js';
+
+// Инициализираме Supabase клиент с ключове от конфигурационния файл
+const supabaseUrl = config.supabaseUrl;
+const supabaseKey = config.supabaseKey;
 
 // Примерни категории
 const sampleCategories = [
@@ -59,11 +67,11 @@ const sampleCategories = [
 function addCategories() {
     console.log('Започва добавяне на категории...');
     
-    // Създаваме Supabase клиент
-    const supabase = supabase.createClient(supabaseUrl, supabaseKey);
+    // Използваме глобалния supabase обект, зареден от CDN
+    const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
     
     // Добавяме категориите
-    supabase
+    supabaseClient
         .from('categories')
         .insert(sampleCategories)
         .then(response => {

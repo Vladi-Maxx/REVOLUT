@@ -1,11 +1,21 @@
 /**
  * Скрипт за добавяне на примерни категории в базата данни
+ * 
+ * ВНИМАНИЕ: За да използвате този скрипт, първо трябва да създадете файл src/config.js
+ * с правилните ключове за Supabase. Този файл не трябва да се качва в Git хранилището.
+ * 
+ * ЗАБЕЛЕЖКА:
+ * Този скрипт е предназначен за изпълнение в Node.js среда.
+ * Преди да го използвате, уверете се, че сте инсталирали зависимостите:
+ * npm install @supabase/supabase-js
  */
 
 // Импортираме необходимите модули
 const { createClient } = require('@supabase/supabase-js');
 
-// Инициализиране на Supabase клиент
+// Тъй като в Node.js не можем директно да използваме ES модули без допълнителна конфигурация,
+// копираме ключовете тук директно за този скрипт
+// ВАЖНО: Това е временно решение - в реална среда използвайте .env файл или друг безопасен начин за съхраняване на ключове
 const supabaseUrl = 'https://reuuohlmseejmakhxide.supabase.co';
 const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJldXVvaGxtc2Vlam1ha2h4aWRlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDIxMDU0MTIsImV4cCI6MjA1NzY4MTQxMn0.L0hipLSxu3mtlMcJ8Tk7OsDmvJzjvfGbYsfNVncPOvo';
 const supabase = createClient(supabaseUrl, supabaseKey);
