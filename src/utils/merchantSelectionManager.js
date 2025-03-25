@@ -255,7 +255,9 @@ class MerchantSelectionManager {
         // но запазваме пълната таблица с търговци
         if (this.filterManager) {
             // Разширяваме applyFilters с информация за избраните търговци
-            // и подаваме флаг preserveMerchantsTable: true
+            // и подаваме флаг preserveMerchantsTable: true, за да запазим
+            // пълната таблица с търговци, но статистиките и транзакционната
+            // таблица ще се обновят само за избраните търговци
             this.filterManager.applyFilters(null, Array.from(this.selectedMerchants), true);
         }
     }

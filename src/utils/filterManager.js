@@ -254,6 +254,8 @@ class FilterManager {
             this.preparedChartData = preparedChartData;
             
             // Подготвяме данни със статистики за текущите транзакции
+            // Важно: За статистиките винаги използваме filteredTransactions (актуално филтрираните транзакции),
+            // а не filteredBeforeCategory, за да показват реални данни за текущите филтри
             const transactionStats = this.dataUtils.calculateTransactionStats(filteredTransactions);
             
             // Връщаме резултат с филтрираните транзакции, статистиките и данните за търговци

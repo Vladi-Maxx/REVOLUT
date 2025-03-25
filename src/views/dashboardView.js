@@ -551,6 +551,8 @@ class DashboardView {
             
             if (this.summaryComponent) {
                 console.log('%c[DashboardView] Обновяване на summaryComponent', 'background: #3498db; color: white; padding: 2px 5px; border-radius: 3px;');
+                // Важно: За обобщение (статистики) винаги използваме result.stats,
+                // които се базират на filteredTransactions, а не на filteredBeforeCategory
                 this.summaryComponent.updateSummary(result.stats);
             } else {
                 console.error('%c[DashboardView] summaryComponent не е инициализиран!', 'background: #e74c3c; color: white; padding: 2px 5px; border-radius: 3px;');
@@ -565,6 +567,9 @@ class DashboardView {
             
             if (this.transactionsTableComponent) {
                 console.log('%c[DashboardView] Обновяване на transactionsTableComponent', 'background: #3498db; color: white; padding: 2px 5px; border-radius: 3px;');
+                // Важно: Винаги използваме filteredTransactions за транзакционната таблица,
+                // независимо от флага preserveMerchantsTable, за да показваме само транзакциите
+                // които съответстват на текущите филтри, включително избраните търговци
                 this.transactionsTableComponent.updateTable(filteredTransactions);
             } else {
                 console.error('%c[DashboardView] transactionsTableComponent не е инициализиран!', 'background: #e74c3c; color: white; padding: 2px 5px; border-radius: 3px;');
