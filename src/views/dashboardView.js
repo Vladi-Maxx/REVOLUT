@@ -197,6 +197,18 @@ class DashboardView {
         // Инициализираме филтрите
         this.filterManager.initFilters();
         
+        // Инициализираме QuickFilterManager с референция към FilterManager
+        this.quickFilterManager = new QuickFilterManager({
+            elements: {
+                lastWeekButton: this.lastWeekButton,
+                currentMonthButton: this.currentMonthButton,
+                lastMonthButton: this.lastMonthButton,
+                currentYearButton: this.currentYearButton
+            },
+            filterManager: this.filterManager,
+            applyFiltersCallback: this.applyFilters.bind(this)
+        });
+        
         // Задаваме callback за избор на категория
         if (this.categoryChartComponent) {
             console.log('%c[DashboardView] Задаване на callback за избор на категория', 'background: #9b59b6; color: white; padding: 2px 5px; border-radius: 3px;');
